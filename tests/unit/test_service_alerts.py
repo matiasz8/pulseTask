@@ -45,7 +45,7 @@ def test_service_tick_triggers_alert_on_expiration(tmp_path: Path) -> None:
     assert notify.calls[1][0] == "Task expired"
 
 
-def test_service_tick_triggers_last_five_seconds_cues(tmp_path: Path) -> None:
+def test_service_tick_triggers_last_three_seconds_cues(tmp_path: Path) -> None:
     repo = TaskRepository(tmp_path / "alerts-cue.db")
     audio = _FakeAudio()
     notify = _FakeNotify()
@@ -59,4 +59,4 @@ def test_service_tick_triggers_last_five_seconds_cues(tmp_path: Path) -> None:
     for sec in [1, 2, 3, 4, 5, 6]:
         service.tick(now=now + timedelta(seconds=sec))
 
-    assert audio.cue_calls == 5
+    assert audio.cue_calls == 3

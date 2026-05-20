@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from pulse_task.core.service import TaskService
 from pulse_task.core.task import Task, TaskStatus
+from pulse_task.system.tray import build_tray_controller
 
 
 @dataclass(slots=True)
@@ -53,6 +54,8 @@ def launch_desktop_ui(service: TaskService) -> int:
             super().__init__(application=app)
             self.service = app_service
             self.show_archived = False
+            self._allow_close = False
+            self.tray_controller = None
             self.set_title("PulseTask")
             self.set_default_size(980, 620)
 
@@ -99,8 +102,62 @@ def launch_desktop_ui(service: TaskService) -> int:
             self.set_content(root)
             self._setup_keyboard_shortcuts()
             self._refresh_view()
+            self.tray_controller = self._setup_tray()
+            self.connect("close-request", self._on_close_request)
 
             GLib.timeout_add_seconds(1, self._on_timer_tick)
+
+        def _setup_tray(self):
+            controller = build_tray_controller(
+                on_open=self._open_from_tray,
+                on_toggle=self._toggle_active_task,
+                on_reset=self._reset_active_task,
+                on_quit=self._quit_from_tray,
+                format_seconds=format_seconds,
+            )
+            if controller is None:
+                self._set_notice("Tray indicator unavailable in this desktop session.")
+            return controller
+
+        def _open_from_tray(self) -> None:
+            self.present()
+
+        def _quit_from_tray(self) -> None:
+            self._allow_close = True
+            app = self.get_application()
+            if app is not None:
+                app.quit()
+
+        def _on_close_request(self, _window) -> bool:
+            if self.tray_controller is None or self._allow_close:
+                return False
+            self.hide()
+            self._set_notice("PulseTask minimized to tray")
+            return True
+
+        def _reset_active_task(self) -> None:
+            tasks = self._visible_tasks()
+            candidate = next(
+                (task for task in tasks if task.status == TaskStatus.RUNNING),
+                None,
+            )
+            if candidate is None:
+                candidate = next(
+                    (
+                        task
+                        for task in tasks
+                        if task.status in {TaskStatus.PAUSED, TaskStatus.PENDING}
+                    ),
+                    None,
+                )
+            if candidate is None:
+                return
+            try:
+                self.service.reset_task(candidate.id)
+                self._set_notice("Task reset")
+            except Exception as exc:
+                self._set_notice(f"Cannot reset task: {exc}", is_error=True)
+            self._refresh_view()
 
         def _install_css(self) -> None:
             css = """
@@ -472,6 +529,9 @@ def launch_desktop_ui(service: TaskService) -> int:
 
             for task in tasks:
                 self.task_list.append(self._build_task_row(task))
+
+            if self.tray_controller is not None:
+                self.tray_controller.update(tasks)
 
         def _build_task_row(self, task: Task) -> Gtk.ListBoxRow:
             row = Gtk.ListBoxRow()

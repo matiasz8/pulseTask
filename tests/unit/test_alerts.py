@@ -71,7 +71,7 @@ def test_alert_manager_notifies_task_started_with_hours() -> None:
     assert notify.calls == [("Task started", "Deep session - 1h and 10 min remaining.")]
 
 
-def test_countdown_cue_only_for_last_five_seconds_and_without_duplicates() -> None:
+def test_countdown_cue_only_for_last_three_seconds_and_without_duplicates() -> None:
     audio = _FakeAudio()
     manager = AlertManager(
         audio_backend=audio,
@@ -80,7 +80,8 @@ def test_countdown_cue_only_for_last_five_seconds_and_without_duplicates() -> No
     )
 
     assert manager.maybe_play_countdown_cue("task-1", 6) is False
-    assert manager.maybe_play_countdown_cue("task-1", 5) is True
-    assert manager.maybe_play_countdown_cue("task-1", 5) is False
-    assert manager.maybe_play_countdown_cue("task-1", 4) is True
+    assert manager.maybe_play_countdown_cue("task-1", 4) is False
+    assert manager.maybe_play_countdown_cue("task-1", 3) is True
+    assert manager.maybe_play_countdown_cue("task-1", 3) is False
+    assert manager.maybe_play_countdown_cue("task-1", 2) is True
     assert audio.cue_calls == 2

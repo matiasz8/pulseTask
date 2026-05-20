@@ -58,7 +58,7 @@ class AlertManager:
         )
 
     def maybe_play_countdown_cue(self, task_id: str, remaining_seconds: int) -> bool:
-        if remaining_seconds < 1 or remaining_seconds > 5:
+        if remaining_seconds < 1 or remaining_seconds > 3:
             return False
         if self._countdown_cues.get(task_id) == remaining_seconds:
             return False
