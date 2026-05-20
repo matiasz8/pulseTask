@@ -238,26 +238,23 @@ def launch_desktop_ui(service: TaskService) -> int:
                 orientation=Gtk.Orientation.HORIZONTAL,
                 adjustment=duration_adjustment,
             )
+            duration_scale.set_hexpand(True)
             duration_scale.set_draw_value(False)
-            duration_input = Gtk.SpinButton.new_with_range(1, 480, 1)
-            duration_input.set_value(20)
+            minus_btn = Gtk.Button(label="-")
+            plus_btn = Gtk.Button(label="+")
             duration_label = Gtk.Label(label=format_minutes_human(20), xalign=0)
             duration_scale.connect(
                 "value-changed",
                 self._on_minutes_scale_changed,
                 duration_label,
-                duration_input,
             )
-            duration_input.connect(
-                "value-changed",
-                self._on_minutes_input_changed,
-                duration_label,
-                duration_scale,
-            )
+            minus_btn.connect("clicked", self._on_minutes_minus_clicked, duration_scale)
+            plus_btn.connect("clicked", self._on_minutes_plus_clicked, duration_scale)
 
             minutes_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            minutes_row.append(minus_btn)
             minutes_row.append(duration_scale)
-            minutes_row.append(duration_input)
+            minutes_row.append(plus_btn)
 
             box.append(Gtk.Label(label="Title", xalign=0))
             box.append(title_entry)
@@ -273,7 +270,7 @@ def launch_desktop_ui(service: TaskService) -> int:
                 self._on_create_task_response,
                 title_entry,
                 desc_entry,
-                duration_input,
+                duration_scale,
             )
             dialog.present()
 
@@ -281,23 +278,17 @@ def launch_desktop_ui(service: TaskService) -> int:
             self,
             scale: Gtk.Scale,
             label: Gtk.Label,
-            input_minutes: Gtk.SpinButton,
         ) -> None:
             minutes = int(scale.get_value())
-            if int(input_minutes.get_value()) != minutes:
-                input_minutes.set_value(minutes)
             label.set_text(format_minutes_human(minutes))
 
-        def _on_minutes_input_changed(
-            self,
-            input_minutes: Gtk.SpinButton,
-            label: Gtk.Label,
-            scale: Gtk.Scale,
-        ) -> None:
-            minutes = int(input_minutes.get_value())
-            if int(scale.get_value()) != minutes:
-                scale.set_value(minutes)
-            label.set_text(format_minutes_human(minutes))
+        def _on_minutes_minus_clicked(self, _button: Gtk.Button, scale: Gtk.Scale) -> None:
+            current = int(scale.get_value())
+            scale.set_value(max(1, current - 1))
+
+        def _on_minutes_plus_clicked(self, _button: Gtk.Button, scale: Gtk.Scale) -> None:
+            current = int(scale.get_value())
+            scale.set_value(min(480, current + 1))
 
         def _on_create_task_response(
             self,
@@ -305,7 +296,7 @@ def launch_desktop_ui(service: TaskService) -> int:
             response_id: int,
             title_entry: Gtk.Entry,
             desc_entry: Gtk.Entry,
-            duration_input: Gtk.SpinButton,
+            duration_scale: Gtk.Scale,
         ) -> None:
             if response_id == Gtk.ResponseType.OK:
                 title = title_entry.get_text().strip()
@@ -313,7 +304,7 @@ def launch_desktop_ui(service: TaskService) -> int:
                     self._set_notice("Title is required", is_error=True)
                 else:
                     try:
-                        minutes = duration_input.get_value_as_int()
+                        minutes = int(duration_scale.get_value())
                         self.service.create_task(
                             title=title,
                             description=desc_entry.get_text().strip(),
@@ -396,26 +387,23 @@ def launch_desktop_ui(service: TaskService) -> int:
                 orientation=Gtk.Orientation.HORIZONTAL,
                 adjustment=duration_adjustment,
             )
+            duration_scale.set_hexpand(True)
             duration_scale.set_draw_value(False)
-            duration_input = Gtk.SpinButton.new_with_range(1, 480, 1)
-            duration_input.set_value(minutes_value)
+            minus_btn = Gtk.Button(label="-")
+            plus_btn = Gtk.Button(label="+")
             duration_label = Gtk.Label(label=format_minutes_human(minutes_value), xalign=0)
             duration_scale.connect(
                 "value-changed",
                 self._on_minutes_scale_changed,
                 duration_label,
-                duration_input,
             )
-            duration_input.connect(
-                "value-changed",
-                self._on_minutes_input_changed,
-                duration_label,
-                duration_scale,
-            )
+            minus_btn.connect("clicked", self._on_minutes_minus_clicked, duration_scale)
+            plus_btn.connect("clicked", self._on_minutes_plus_clicked, duration_scale)
 
             minutes_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            minutes_row.append(minus_btn)
             minutes_row.append(duration_scale)
-            minutes_row.append(duration_input)
+            minutes_row.append(plus_btn)
 
             box.append(Gtk.Label(label="Title", xalign=0))
             box.append(title_entry)
@@ -432,7 +420,7 @@ def launch_desktop_ui(service: TaskService) -> int:
                 task.id,
                 title_entry,
                 desc_entry,
-                duration_input,
+                duration_scale,
             )
             dialog.present()
 
@@ -443,7 +431,7 @@ def launch_desktop_ui(service: TaskService) -> int:
             task_id: str,
             title_entry: Gtk.Entry,
             desc_entry: Gtk.Entry,
-            duration_input: Gtk.SpinButton,
+            duration_scale: Gtk.Scale,
         ) -> None:
             if response_id == Gtk.ResponseType.OK:
                 try:
@@ -451,7 +439,7 @@ def launch_desktop_ui(service: TaskService) -> int:
                         task_id,
                         title=title_entry.get_text(),
                         description=desc_entry.get_text(),
-                        duration_minutes=duration_input.get_value_as_int(),
+                        duration_minutes=int(duration_scale.get_value()),
                     )
                     self._set_notice("Task updated")
                 except Exception as exc:
