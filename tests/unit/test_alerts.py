@@ -51,4 +51,17 @@ def test_alert_manager_notifies_task_started() -> None:
     manager.notify_task_started("Focus block", remaining_seconds=1500)
 
     assert audio.calls == 0
-    assert notify.calls == [("Task started", "Focus block - 25 minute(s) remaining.")]
+    assert notify.calls == [("Task started", "Focus block - 25 min remaining.")]
+
+
+def test_alert_manager_notifies_task_started_with_hours() -> None:
+    notify = _FakeNotify()
+    manager = AlertManager(
+        audio_backend=_FakeAudio(),
+        notification_backend=notify,
+        debounce_seconds=0,
+    )
+
+    manager.notify_task_started("Deep session", remaining_seconds=4200)
+
+    assert notify.calls == [("Task started", "Deep session - 1h and 10 min remaining.")]
