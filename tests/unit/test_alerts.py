@@ -41,3 +41,14 @@ def test_alert_manager_debounces_quick_repeats() -> None:
     assert second is False
     assert audio.calls == 1
     assert len(notify.calls) == 1
+
+
+def test_alert_manager_notifies_task_started() -> None:
+    audio = _FakeAudio()
+    notify = _FakeNotify()
+    manager = AlertManager(audio_backend=audio, notification_backend=notify, debounce_seconds=0)
+
+    manager.notify_task_started("Focus block", remaining_seconds=1500)
+
+    assert audio.calls == 0
+    assert notify.calls == [("Task started", "Focus block - 25 minute(s) remaining.")]

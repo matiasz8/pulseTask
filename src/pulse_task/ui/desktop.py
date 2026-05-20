@@ -36,6 +36,9 @@ def launch_desktop_ui(service: TaskService) -> int:
             return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         return f"{minutes:02d}:{seconds:02d}"
 
+    def format_minutes(total_seconds: int) -> int:
+        return max(1, total_seconds // 60)
+
     class MainWindow(Adw.ApplicationWindow):
         def __init__(self, app: Adw.Application, app_service: TaskService) -> None:
             super().__init__(application=app)
@@ -99,15 +102,29 @@ def launch_desktop_ui(service: TaskService) -> int:
 
             title_entry = Gtk.Entry(placeholder_text="Task title")
             desc_entry = Gtk.Entry(placeholder_text="Description (optional)")
-            duration = Gtk.SpinButton.new_with_range(60, 8 * 3600, 60)
-            duration.set_value(20 * 60)
+            duration_adjustment = Gtk.Adjustment(
+                value=20,
+                lower=1,
+                upper=480,
+                step_increment=1,
+                page_increment=10,
+                page_size=0,
+            )
+            duration_scale = Gtk.Scale(
+                orientation=Gtk.Orientation.HORIZONTAL,
+                adjustment=duration_adjustment,
+            )
+            duration_scale.set_draw_value(False)
+            duration_label = Gtk.Label(label="20 min", xalign=0)
+            duration_scale.connect("value-changed", self._on_minutes_scale_changed, duration_label)
 
             box.append(Gtk.Label(label="Title", xalign=0))
             box.append(title_entry)
             box.append(Gtk.Label(label="Description", xalign=0))
             box.append(desc_entry)
-            box.append(Gtk.Label(label="Duration (seconds)", xalign=0))
-            box.append(duration)
+            box.append(Gtk.Label(label="Duration (minutes)", xalign=0))
+            box.append(duration_scale)
+            box.append(duration_label)
             area.append(box)
 
             dialog.connect(
@@ -115,9 +132,12 @@ def launch_desktop_ui(service: TaskService) -> int:
                 self._on_create_task_response,
                 title_entry,
                 desc_entry,
-                duration,
+                duration_scale,
             )
             dialog.present()
+
+        def _on_minutes_scale_changed(self, scale: Gtk.Scale, label: Gtk.Label) -> None:
+            label.set_text(f"{int(scale.get_value())} min")
 
         def _on_create_task_response(
             self,
@@ -125,7 +145,7 @@ def launch_desktop_ui(service: TaskService) -> int:
             response_id: int,
             title_entry: Gtk.Entry,
             desc_entry: Gtk.Entry,
-            duration: Gtk.SpinButton,
+            duration_scale: Gtk.Scale,
         ) -> None:
             if response_id == Gtk.ResponseType.OK:
                 title = title_entry.get_text().strip()
@@ -133,14 +153,91 @@ def launch_desktop_ui(service: TaskService) -> int:
                     self._set_notice("Title is required", is_error=True)
                 else:
                     try:
+                        minutes = int(duration_scale.get_value())
                         self.service.create_task(
                             title=title,
                             description=desc_entry.get_text().strip(),
-                            duration_seconds=duration.get_value_as_int(),
+                            duration_seconds=minutes * 60,
                         )
                         self._set_notice("Task created")
                     except Exception as exc:
                         self._set_notice(f"Cannot create task: {exc}", is_error=True)
+            dialog.close()
+            self._refresh_view()
+
+        def _open_edit_task_dialog(self, task: Task) -> None:
+            dialog = Gtk.Dialog(title="Edit task", transient_for=self, modal=True)
+            dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+            dialog.add_button("Save", Gtk.ResponseType.OK)
+
+            area = dialog.get_content_area()
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            box.set_margin_top(12)
+            box.set_margin_bottom(12)
+            box.set_margin_start(12)
+            box.set_margin_end(12)
+
+            title_entry = Gtk.Entry()
+            title_entry.set_text(task.title)
+            desc_entry = Gtk.Entry()
+            desc_entry.set_text(task.description)
+
+            minutes_value = format_minutes(task.duration_seconds)
+            duration_adjustment = Gtk.Adjustment(
+                value=minutes_value,
+                lower=1,
+                upper=480,
+                step_increment=1,
+                page_increment=10,
+                page_size=0,
+            )
+            duration_scale = Gtk.Scale(
+                orientation=Gtk.Orientation.HORIZONTAL,
+                adjustment=duration_adjustment,
+            )
+            duration_scale.set_draw_value(False)
+            duration_label = Gtk.Label(label=f"{minutes_value} min", xalign=0)
+            duration_scale.connect("value-changed", self._on_minutes_scale_changed, duration_label)
+
+            box.append(Gtk.Label(label="Title", xalign=0))
+            box.append(title_entry)
+            box.append(Gtk.Label(label="Description", xalign=0))
+            box.append(desc_entry)
+            box.append(Gtk.Label(label="Duration (minutes)", xalign=0))
+            box.append(duration_scale)
+            box.append(duration_label)
+            area.append(box)
+
+            dialog.connect(
+                "response",
+                self._on_edit_task_response,
+                task.id,
+                title_entry,
+                desc_entry,
+                duration_scale,
+            )
+            dialog.present()
+
+        def _on_edit_task_response(
+            self,
+            dialog: Gtk.Dialog,
+            response_id: int,
+            task_id: str,
+            title_entry: Gtk.Entry,
+            desc_entry: Gtk.Entry,
+            duration_scale: Gtk.Scale,
+        ) -> None:
+            if response_id == Gtk.ResponseType.OK:
+                try:
+                    self.service.update_task(
+                        task_id,
+                        title=title_entry.get_text(),
+                        description=desc_entry.get_text(),
+                        duration_minutes=int(duration_scale.get_value()),
+                    )
+                    self._set_notice("Task updated")
+                except Exception as exc:
+                    self._set_notice(f"Cannot update task: {exc}", is_error=True)
             dialog.close()
             self._refresh_view()
 
@@ -190,10 +287,15 @@ def launch_desktop_ui(service: TaskService) -> int:
                 xalign=0,
                 label=(
                     f"Remaining: {format_seconds(task.remaining_seconds)} "
-                    f"of {format_seconds(task.duration_seconds)}"
+                    f"of {format_seconds(task.duration_seconds)} "
+                    f"({format_minutes(task.duration_seconds)} min)"
                 ),
             )
             wrap.append(meta)
+
+            if task.description:
+                desc = Gtk.Label(xalign=0, label=task.description)
+                wrap.append(desc)
 
             actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             if task.status in {TaskStatus.PENDING, TaskStatus.PAUSED}:
@@ -209,6 +311,10 @@ def launch_desktop_ui(service: TaskService) -> int:
             reset_btn = Gtk.Button(label="Reset")
             reset_btn.connect("clicked", self._on_reset_clicked, task.id)
             actions.append(reset_btn)
+
+            edit_btn = Gtk.Button(label="Edit")
+            edit_btn.connect("clicked", self._on_edit_clicked, task.id)
+            actions.append(edit_btn)
 
             wrap.append(actions)
             row.set_child(wrap)
@@ -241,6 +347,10 @@ def launch_desktop_ui(service: TaskService) -> int:
             except Exception as exc:
                 self._set_notice(f"Cannot reset task: {exc}", is_error=True)
             self._refresh_view()
+
+        def _on_edit_clicked(self, _button: Gtk.Button, task_id: str) -> None:
+            task = self.service.get_task(task_id)
+            self._open_edit_task_dialog(task)
 
     class PulseTaskApplication(Adw.Application):
         def __init__(self, app_service: TaskService) -> None:

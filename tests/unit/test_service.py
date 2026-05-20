@@ -64,3 +64,39 @@ def test_recover_running_tasks_after_restart(tmp_path: Path) -> None:
     persisted = service.get_task(task.id)
     assert persisted.status == TaskStatus.RUNNING
     assert persisted.remaining_seconds in {89, 90}
+
+
+def test_update_task_changes_title_description_and_duration(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    task = service.create_task("Old title", 300, "Old")
+
+    updated = service.update_task(
+        task.id,
+        title="New title",
+        description="New description",
+        duration_minutes=25,
+    )
+
+    assert updated.title == "New title"
+    assert updated.description == "New description"
+    assert updated.duration_seconds == 1500
+    assert updated.remaining_seconds == 1500
+
+
+def test_update_task_rejects_running_task(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    task = service.create_task("Running", 300)
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    service.start_task(task.id, now=now)
+
+    try:
+        service.update_task(
+            task.id,
+            title="Edited",
+            description="Desc",
+            duration_minutes=30,
+        )
+    except ValueError as exc:
+        assert "Pause the task" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError when editing a running task")

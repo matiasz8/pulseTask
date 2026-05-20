@@ -39,3 +39,10 @@ class AlertManager:
         )
         self._last_alert_at = now
         return True
+
+    def notify_task_started(self, title: str, remaining_seconds: int) -> None:
+        minutes = max(1, remaining_seconds // 60)
+        self.notification_backend.send(
+            title="Task started",
+            body=f"{title} - {minutes} minute(s) remaining.",
+        )

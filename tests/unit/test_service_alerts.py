@@ -16,10 +16,10 @@ class _FakeAudio:
 
 class _FakeNotify:
     def __init__(self) -> None:
-        self.calls = 0
+        self.calls: list[tuple[str, str]] = []
 
     def send(self, title: str, body: str) -> None:
-        self.calls += 1
+        self.calls.append((title, body))
 
 
 def test_service_tick_triggers_alert_on_expiration(tmp_path: Path) -> None:
@@ -36,4 +36,6 @@ def test_service_tick_triggers_alert_on_expiration(tmp_path: Path) -> None:
     service.tick(now=now + timedelta(seconds=61))
 
     assert audio.calls == 1
-    assert notify.calls == 1
+    assert len(notify.calls) == 2
+    assert notify.calls[0][0] == "Task started"
+    assert notify.calls[1][0] == "Task expired"

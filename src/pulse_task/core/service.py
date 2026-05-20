@@ -44,6 +44,7 @@ class TaskService:
         task = self.get_task(task_id)
         started = self.timer_engine.start(task, now=now)
         self.repository.upsert(started)
+        self.alert_manager.notify_task_started(started.title, started.remaining_seconds)
         return started
 
     def pause_task(self, task_id: str, now: datetime | None = None) -> Task:
@@ -57,7 +58,34 @@ class TaskService:
         task = self.get_task(task_id)
         resumed = self.timer_engine.resume(task, now=now)
         self.repository.upsert(resumed)
+        self.alert_manager.notify_task_started(resumed.title, resumed.remaining_seconds)
         return resumed
+
+    def update_task(
+        self,
+        task_id: str,
+        *,
+        title: str,
+        description: str,
+        duration_minutes: int,
+    ) -> Task:
+        task = self.get_task(task_id)
+        if task.status == TaskStatus.RUNNING:
+            raise ValueError("Pause the task before editing")
+
+        task.title = title.strip()
+        if not task.title:
+            raise ValueError("Title is required")
+        task.description = description.strip()
+        duration_seconds = duration_minutes * 60
+        task.duration_seconds = duration_seconds
+        task.remaining_seconds = duration_seconds
+        if task.status in {TaskStatus.COMPLETED, TaskStatus.EXPIRED}:
+            task.status = TaskStatus.PENDING
+            task.finished_at = None
+
+        self.repository.upsert(task)
+        return task
 
     def reset_task(self, task_id: str) -> Task:
         task = self.get_task(task_id)
