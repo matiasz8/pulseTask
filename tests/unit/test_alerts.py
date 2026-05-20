@@ -4,9 +4,13 @@ from pulse_task.core.alerts import AlertEvent, AlertManager
 class _FakeAudio:
     def __init__(self) -> None:
         self.calls = 0
+        self.cue_calls = 0
 
     def play_alert(self) -> None:
         self.calls += 1
+
+    def play_countdown_cue(self) -> None:
+        self.cue_calls += 1
 
 
 class _FakeNotify:
@@ -65,3 +69,18 @@ def test_alert_manager_notifies_task_started_with_hours() -> None:
     manager.notify_task_started("Deep session", remaining_seconds=4200)
 
     assert notify.calls == [("Task started", "Deep session - 1h and 10 min remaining.")]
+
+
+def test_countdown_cue_only_for_last_five_seconds_and_without_duplicates() -> None:
+    audio = _FakeAudio()
+    manager = AlertManager(
+        audio_backend=audio,
+        notification_backend=_FakeNotify(),
+        debounce_seconds=0,
+    )
+
+    assert manager.maybe_play_countdown_cue("task-1", 6) is False
+    assert manager.maybe_play_countdown_cue("task-1", 5) is True
+    assert manager.maybe_play_countdown_cue("task-1", 5) is False
+    assert manager.maybe_play_countdown_cue("task-1", 4) is True
+    assert audio.cue_calls == 2

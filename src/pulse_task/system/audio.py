@@ -40,3 +40,20 @@ class AudioBackend:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+
+    def play_countdown_cue(self) -> None:
+        canberra = shutil.which("canberra-gtk-play")
+        if canberra is None:
+            return
+        subprocess.run(
+            [
+                canberra,
+                "--id",
+                "bell-terminal",
+                "--description",
+                "PulseTask countdown cue",
+            ],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )

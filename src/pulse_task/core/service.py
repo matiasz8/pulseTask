@@ -47,6 +47,7 @@ class TaskService:
         task = self.get_task(task_id)
         started = self.timer_engine.start(task, now=now)
         self.repository.upsert(started)
+        self.alert_manager.clear_countdown_cues(started.id)
         self.alert_manager.notify_task_started(started.title, started.remaining_seconds)
         return started
 
@@ -54,6 +55,7 @@ class TaskService:
         task = self.get_task(task_id)
         paused = self.timer_engine.pause(task, now=now)
         self.repository.upsert(paused)
+        self.alert_manager.clear_countdown_cues(paused.id)
         return paused
 
     def resume_task(self, task_id: str, now: datetime | None = None) -> Task:
@@ -61,6 +63,7 @@ class TaskService:
         task = self.get_task(task_id)
         resumed = self.timer_engine.resume(task, now=now)
         self.repository.upsert(resumed)
+        self.alert_manager.clear_countdown_cues(resumed.id)
         self.alert_manager.notify_task_started(resumed.title, resumed.remaining_seconds)
         return resumed
 
@@ -94,6 +97,7 @@ class TaskService:
         task = self.get_task(task_id)
         reset = self.timer_engine.reset(task)
         self.repository.upsert(reset)
+        self.alert_manager.clear_countdown_cues(reset.id)
         return reset
 
     def complete_task(self, task_id: str, now: datetime | None = None) -> Task:
@@ -103,6 +107,7 @@ class TaskService:
         task.target_at = None
         task.finished_at = now
         self.repository.upsert(task)
+        self.alert_manager.clear_countdown_cues(task.id)
         return task
 
     def archive_task(self, task_id: str) -> Task:
@@ -112,10 +117,12 @@ class TaskService:
         task.status = TaskStatus.ARCHIVED
         task.target_at = None
         self.repository.upsert(task)
+        self.alert_manager.clear_countdown_cues(task.id)
         return task
 
     def delete_task(self, task_id: str) -> None:
         self.repository.delete(task_id)
+        self.alert_manager.clear_countdown_cues(task_id)
 
     def snooze_task(self, task_id: str, minutes: int, now: datetime | None = None) -> Task:
         if minutes <= 0:
@@ -128,6 +135,7 @@ class TaskService:
         task.target_at = None
         snoozed = self.timer_engine.resume(task, now=now)
         self.repository.upsert(snoozed)
+        self.alert_manager.clear_countdown_cues(snoozed.id)
         self.alert_manager.notify_task_started(snoozed.title, snoozed.remaining_seconds)
         return snoozed
 
@@ -139,10 +147,12 @@ class TaskService:
             before_remaining = task.remaining_seconds
             before_status = task.status
             refreshed = self.timer_engine.refresh(task, now=now)
+            self.alert_manager.maybe_play_countdown_cue(refreshed.id, refreshed.remaining_seconds)
             if refreshed.remaining_seconds != before_remaining or refreshed.status != before_status:
                 self.repository.upsert(refreshed)
                 changed.append(refreshed)
                 if before_status == TaskStatus.RUNNING and refreshed.status == TaskStatus.EXPIRED:
+                    self.alert_manager.clear_countdown_cues(refreshed.id)
                     self.alert_manager.alert_task_expired(
                         AlertEvent(task_id=refreshed.id, title=refreshed.title)
                     )

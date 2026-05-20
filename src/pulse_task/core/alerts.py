@@ -26,6 +26,7 @@ class AlertManager:
         self.notification_backend = notification_backend or NotificationBackend()
         self.debounce_seconds = debounce_seconds
         self._last_alert_at = 0.0
+        self._countdown_cues: dict[str, int] = {}
 
     def alert_task_expired(self, event: AlertEvent) -> bool:
         now = monotonic()
@@ -55,3 +56,16 @@ class AlertManager:
             title="Task started",
             body=f"{title} - {remaining} remaining.",
         )
+
+    def maybe_play_countdown_cue(self, task_id: str, remaining_seconds: int) -> bool:
+        if remaining_seconds < 1 or remaining_seconds > 5:
+            return False
+        if self._countdown_cues.get(task_id) == remaining_seconds:
+            return False
+
+        self.audio_backend.play_countdown_cue()
+        self._countdown_cues[task_id] = remaining_seconds
+        return True
+
+    def clear_countdown_cues(self, task_id: str) -> None:
+        self._countdown_cues.pop(task_id, None)
