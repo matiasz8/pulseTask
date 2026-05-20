@@ -1,10 +1,16 @@
-from pulse_task.ui.stub import launch_stub_ui
+from pathlib import Path
+
+from pulse_task.core.persistence import TaskRepository
+from pulse_task.core.service import TaskService
+from pulse_task.ui.desktop import launch_desktop_ui
 
 
 def run() -> int:
-    """Application entrypoint.
+    """Application entrypoint."""
+    data_dir = Path.home() / ".local" / "share" / "pulsetask"
+    data_dir.mkdir(parents=True, exist_ok=True)
 
-    A GTK/libadwaita UI will replace this stub in the next implementation phase.
-    """
-    launch_stub_ui()
-    return 0
+    repository = TaskRepository(data_dir / "tasks.db")
+    service = TaskService(repository=repository)
+    service.recover_running_tasks()
+    return launch_desktop_ui(service)
