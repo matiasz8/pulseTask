@@ -124,6 +124,12 @@ class TaskService:
         self.repository.delete(task_id)
         self.alert_manager.clear_countdown_cues(task_id)
 
+    def restore_task_snapshot(self, task: Task) -> Task:
+        if task.status == TaskStatus.RUNNING:
+            self._ensure_no_other_running(task.id)
+        self.repository.upsert(task)
+        return task
+
     def snooze_task(self, task_id: str, minutes: int, now: datetime | None = None) -> Task:
         if minutes <= 0:
             raise ValueError("Snooze minutes must be > 0")
@@ -167,6 +173,9 @@ class TaskService:
             self.repository.upsert(refreshed)
             recovered.append(refreshed)
         return recovered
+
+    def set_strong_final_sound(self, enabled: bool) -> None:
+        self.alert_manager.audio_backend.set_strong_final_sound(enabled)
 
     def _ensure_no_other_running(self, selected_task_id: str) -> None:
         for existing in self.repository.list_all():

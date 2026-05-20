@@ -2,7 +2,9 @@ from __future__ import annotations
 
 # mypy: ignore-errors
 from dataclasses import dataclass
+from time import monotonic
 
+from pulse_task.core.preferences import PreferencesRepository, UserPreferences
 from pulse_task.core.service import TaskService
 from pulse_task.core.task import Task, TaskStatus
 from pulse_task.system.tray import build_tray_controller
@@ -14,7 +16,17 @@ class RuntimeNotice:
     is_error: bool = False
 
 
-def launch_desktop_ui(service: TaskService) -> int:
+@dataclass(slots=True)
+class UndoAction:
+    action_type: str
+    task: Task
+
+
+def launch_desktop_ui(
+    service: TaskService,
+    preferences_repo: PreferencesRepository,
+    preferences: UserPreferences,
+) -> int:
     try:
         import gi
 
@@ -53,13 +65,17 @@ def launch_desktop_ui(service: TaskService) -> int:
         def __init__(self, app: Adw.Application, app_service: TaskService) -> None:
             super().__init__(application=app)
             self.service = app_service
-            self.show_archived = False
+            self.preferences_repo = preferences_repo
+            self.preferences = preferences
+            self.show_archived = self.preferences.show_archived_by_default
             self._allow_close = False
             self.tray_controller = None
             self.set_title("PulseTask")
             self.set_default_size(980, 620)
 
             self.notice = RuntimeNotice(message="Ready")
+            self.last_undo_action: UndoAction | None = None
+            self.undo_expires_at = 0.0
             self._install_css()
 
             root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -77,6 +93,18 @@ def launch_desktop_ui(service: TaskService) -> int:
             archived_button.connect("clicked", self._on_toggle_archived_clicked)
             self.archived_button = archived_button
             header.pack_start(archived_button)
+
+            settings_button = Gtk.Button(label="Settings")
+            settings_button.add_css_class("pill")
+            settings_button.connect("clicked", self._on_settings_clicked)
+            header.pack_start(settings_button)
+
+            undo_button = Gtk.Button(label="Undo")
+            undo_button.add_css_class("pill")
+            undo_button.set_sensitive(False)
+            undo_button.connect("clicked", self._on_undo_clicked)
+            self.undo_button = undo_button
+            header.pack_start(undo_button)
 
             new_button = Gtk.Button(label="New task")
             new_button.add_css_class("suggested-action")
@@ -101,6 +129,7 @@ def launch_desktop_ui(service: TaskService) -> int:
 
             self.set_content(root)
             self._setup_keyboard_shortcuts()
+            self._sync_preferences_to_runtime()
             self._refresh_view()
             self.tray_controller = self._setup_tray()
             self.connect("close-request", self._on_close_request)
@@ -129,11 +158,26 @@ def launch_desktop_ui(service: TaskService) -> int:
                 app.quit()
 
         def _on_close_request(self, _window) -> bool:
-            if self.tray_controller is None or self._allow_close:
+            if (
+                self.tray_controller is None
+                or self._allow_close
+                or not self.preferences.close_to_tray
+            ):
                 return False
             self.hide()
             self._set_notice("PulseTask minimized to tray")
             return True
+
+        def _sync_preferences_to_runtime(self) -> None:
+            self.service.set_strong_final_sound(self.preferences.strong_final_sound)
+            state_label = "On" if self.show_archived else "Off"
+            self.archived_button.set_label(f"Show archived: {state_label}")
+
+        def _save_preferences(self) -> None:
+            self.preferences.show_archived_by_default = self.show_archived
+            self.preferences = self.preferences.normalized()
+            self.preferences_repo.save(self.preferences)
+            self._sync_preferences_to_runtime()
 
         def _reset_active_task(self) -> None:
             tasks = self._visible_tasks()
@@ -213,10 +257,46 @@ def launch_desktop_ui(service: TaskService) -> int:
             if ctrl and keyval in {Gdk.KEY_n, Gdk.KEY_N}:
                 self._on_new_task_clicked(Gtk.Button())
                 return True
+            if ctrl and keyval in {Gdk.KEY_z, Gdk.KEY_Z}:
+                self._on_undo_clicked(Gtk.Button())
+                return True
             if keyval == Gdk.KEY_space:
                 self._toggle_active_task()
                 return True
             return False
+
+        def _set_undo_action(self, action_type: str, task: Task) -> None:
+            self.last_undo_action = UndoAction(action_type=action_type, task=task)
+            self.undo_expires_at = monotonic() + 12
+            self.undo_button.set_sensitive(True)
+            self._set_notice(f"Task {action_type}d. Undo available for 12s (Ctrl+Z)")
+
+        def _clear_undo_action(self) -> None:
+            self.last_undo_action = None
+            self.undo_expires_at = 0.0
+            self.undo_button.set_sensitive(False)
+
+        def _expire_undo_if_needed(self) -> None:
+            if self.last_undo_action is None:
+                return
+            if monotonic() >= self.undo_expires_at:
+                self._clear_undo_action()
+                self._set_notice("Undo window expired")
+
+        def _on_undo_clicked(self, _button: Gtk.Button) -> None:
+            if self.last_undo_action is None:
+                return
+            self._expire_undo_if_needed()
+            if self.last_undo_action is None:
+                return
+            try:
+                self.service.restore_task_snapshot(self.last_undo_action.task)
+                label = self.last_undo_action.action_type
+                self._set_notice(f"Undo completed: {label}")
+                self._clear_undo_action()
+            except Exception as exc:
+                self._set_notice(f"Cannot undo action: {exc}", is_error=True)
+            self._refresh_view()
 
         def _toggle_active_task(self) -> None:
             tasks = self._visible_tasks()
@@ -253,6 +333,7 @@ def launch_desktop_ui(service: TaskService) -> int:
 
         def _on_timer_tick(self) -> bool:
             try:
+                self._expire_undo_if_needed()
                 changed = self.service.tick()
                 for task in changed:
                     if task.status == TaskStatus.EXPIRED:
@@ -266,6 +347,7 @@ def launch_desktop_ui(service: TaskService) -> int:
             self.show_archived = not self.show_archived
             state_label = "On" if self.show_archived else "Off"
             self.archived_button.set_label(f"Show archived: {state_label}")
+            self._save_preferences()
             self._refresh_view()
 
         def _on_new_task_clicked(self, _button: Gtk.Button) -> None:
@@ -284,7 +366,7 @@ def launch_desktop_ui(service: TaskService) -> int:
             title_entry = Gtk.Entry(placeholder_text="Task title")
             desc_entry = Gtk.Entry(placeholder_text="Description (optional)")
             duration_adjustment = Gtk.Adjustment(
-                value=20,
+                value=self.preferences.default_duration_minutes,
                 lower=1,
                 upper=480,
                 step_increment=1,
@@ -299,7 +381,10 @@ def launch_desktop_ui(service: TaskService) -> int:
             duration_scale.set_draw_value(False)
             minus_btn = Gtk.Button(label="-")
             plus_btn = Gtk.Button(label="+")
-            duration_label = Gtk.Label(label=format_minutes_human(20), xalign=0)
+            duration_label = Gtk.Label(
+                label=format_minutes_human(self.preferences.default_duration_minutes),
+                xalign=0,
+            )
             duration_scale.connect(
                 "value-changed",
                 self._on_minutes_scale_changed,
@@ -377,7 +462,10 @@ def launch_desktop_ui(service: TaskService) -> int:
             dialog = Gtk.Dialog(title="Task expired", transient_for=self, modal=True)
             dialog.set_default_size(500, 230)
             dialog.add_button("Close", Gtk.ResponseType.CLOSE)
-            dialog.add_button("Snooze 5m", Gtk.ResponseType.APPLY)
+            dialog.add_button("Snooze 1m", 101)
+            dialog.add_button("Snooze 5m", 105)
+            dialog.add_button("Snooze 10m", 110)
+            dialog.add_button("Snooze 15m", 115)
 
             area = dialog.get_content_area()
             content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -392,7 +480,7 @@ def launch_desktop_ui(service: TaskService) -> int:
             )
             title.set_wrap(True)
             detail = Gtk.Label(
-                label="Choose Close to finish or Snooze 5m to restart a short countdown.",
+                label="Choose a snooze interval to restart a short countdown.",
                 xalign=0,
             )
             detail.set_wrap(True)
@@ -404,12 +492,81 @@ def launch_desktop_ui(service: TaskService) -> int:
             dialog.present()
 
         def _on_expired_response(self, dialog: Gtk.Dialog, response_id: int, task_id: str) -> None:
-            if response_id == Gtk.ResponseType.APPLY:
+            snooze_map = {
+                101: 1,
+                105: 5,
+                110: 10,
+                115: 15,
+            }
+            if response_id in snooze_map:
                 try:
-                    self.service.snooze_task(task_id, minutes=5)
-                    self._set_notice("Task snoozed for 5 minutes")
+                    minutes = snooze_map[response_id]
+                    self.service.snooze_task(task_id, minutes=minutes)
+                    self._set_notice(f"Task snoozed for {minutes} minutes")
                 except Exception as exc:
                     self._set_notice(f"Cannot snooze task: {exc}", is_error=True)
+            dialog.close()
+            self._refresh_view()
+
+        def _on_settings_clicked(self, _button: Gtk.Button) -> None:
+            dialog = Gtk.Dialog(title="Settings", transient_for=self, modal=True)
+            dialog.set_default_size(520, 300)
+            dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+            dialog.add_button("Save", Gtk.ResponseType.OK)
+
+            area = dialog.get_content_area()
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            box.set_margin_top(20)
+            box.set_margin_bottom(20)
+            box.set_margin_start(20)
+            box.set_margin_end(20)
+
+            duration_spin = Gtk.SpinButton.new_with_range(1, 480, 1)
+            duration_spin.set_value(self.preferences.default_duration_minutes)
+
+            show_archived_check = Gtk.CheckButton(label="Show archived tasks by default")
+            show_archived_check.set_active(self.preferences.show_archived_by_default)
+
+            strong_sound_check = Gtk.CheckButton(label="Use stronger final alert sound")
+            strong_sound_check.set_active(self.preferences.strong_final_sound)
+
+            close_to_tray_check = Gtk.CheckButton(label="Close to tray when available")
+            close_to_tray_check.set_active(self.preferences.close_to_tray)
+
+            box.append(Gtk.Label(label="Default task duration (minutes)", xalign=0))
+            box.append(duration_spin)
+            box.append(show_archived_check)
+            box.append(strong_sound_check)
+            box.append(close_to_tray_check)
+            area.append(box)
+
+            dialog.connect(
+                "response",
+                self._on_settings_response,
+                duration_spin,
+                show_archived_check,
+                strong_sound_check,
+                close_to_tray_check,
+            )
+            dialog.present()
+
+        def _on_settings_response(
+            self,
+            dialog: Gtk.Dialog,
+            response_id: int,
+            duration_spin: Gtk.SpinButton,
+            show_archived_check: Gtk.CheckButton,
+            strong_sound_check: Gtk.CheckButton,
+            close_to_tray_check: Gtk.CheckButton,
+        ) -> None:
+            if response_id == Gtk.ResponseType.OK:
+                self.preferences.default_duration_minutes = duration_spin.get_value_as_int()
+                self.preferences.show_archived_by_default = show_archived_check.get_active()
+                self.preferences.strong_final_sound = strong_sound_check.get_active()
+                self.preferences.close_to_tray = close_to_tray_check.get_active()
+                self.show_archived = self.preferences.show_archived_by_default
+                self._save_preferences()
+                self._set_notice("Settings saved")
             dialog.close()
             self._refresh_view()
 
@@ -644,8 +801,9 @@ def launch_desktop_ui(service: TaskService) -> int:
 
         def _on_archive_clicked(self, _button: Gtk.Button, task_id: str) -> None:
             try:
+                snapshot = self.service.get_task(task_id)
                 self.service.archive_task(task_id)
-                self._set_notice("Task archived")
+                self._set_undo_action("archive", snapshot)
             except Exception as exc:
                 self._set_notice(f"Cannot archive task: {exc}", is_error=True)
             self._refresh_view()
@@ -665,11 +823,35 @@ def launch_desktop_ui(service: TaskService) -> int:
             self._refresh_view()
 
         def _on_delete_clicked(self, _button: Gtk.Button, task_id: str) -> None:
-            try:
-                self.service.delete_task(task_id)
-                self._set_notice("Task deleted")
-            except Exception as exc:
-                self._set_notice(f"Cannot delete task: {exc}", is_error=True)
+            dialog = Gtk.Dialog(title="Delete task", transient_for=self, modal=True)
+            dialog.set_default_size(420, 180)
+            dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+            dialog.add_button("Delete", Gtk.ResponseType.OK)
+
+            area = dialog.get_content_area()
+            label = Gtk.Label(
+                xalign=0,
+                label="Delete this task permanently? This action cannot be undone.",
+            )
+            label.set_margin_top(16)
+            label.set_margin_bottom(16)
+            label.set_margin_start(16)
+            label.set_margin_end(16)
+            label.set_wrap(True)
+            area.append(label)
+
+            dialog.connect("response", self._on_delete_response, task_id)
+            dialog.present()
+
+        def _on_delete_response(self, dialog: Gtk.Dialog, response_id: int, task_id: str) -> None:
+            if response_id == Gtk.ResponseType.OK:
+                try:
+                    snapshot = self.service.get_task(task_id)
+                    self.service.delete_task(task_id)
+                    self._set_undo_action("delete", snapshot)
+                except Exception as exc:
+                    self._set_notice(f"Cannot delete task: {exc}", is_error=True)
+            dialog.close()
             self._refresh_view()
 
     class PulseTaskApplication(Adw.Application):

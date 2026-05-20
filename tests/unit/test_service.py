@@ -128,6 +128,32 @@ def test_delete_task_removes_entity(tmp_path: Path) -> None:
         raise AssertionError("Expected ValueError for deleted task")
 
 
+def test_restore_task_snapshot_after_delete(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    task = service.create_task("Recover me", 300)
+    snapshot = service.get_task(task.id)
+
+    service.delete_task(task.id)
+    restored = service.restore_task_snapshot(snapshot)
+
+    assert restored.id == task.id
+    persisted = service.get_task(task.id)
+    assert persisted.title == "Recover me"
+
+
+def test_restore_task_snapshot_after_archive(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    task = service.create_task("Archive recover", 300)
+    snapshot = service.get_task(task.id)
+
+    service.archive_task(task.id)
+    service.restore_task_snapshot(snapshot)
+
+    restored = service.get_task(task.id)
+    assert restored.status == TaskStatus.PENDING
+    assert len(service.list_archived_tasks()) == 0
+
+
 def test_snooze_task_restarts_countdown(tmp_path: Path) -> None:
     service = _make_service(tmp_path)
     task = service.create_task("Snooze", 60)

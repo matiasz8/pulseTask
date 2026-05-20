@@ -25,6 +25,12 @@ Implemented in this first commit:
 - SQLite task persistence
 - Unit tests and CI baseline
 
+MVP Block 1 status: completed.
+
+- Preferences persistence (default duration, archived visibility, sound profile, close-to-tray)
+- Destructive action safeguards (delete confirmation + undo for archive/delete)
+- Expiration flow with configurable snooze options (1/5/10/15 min)
+
 ## Planned Stack
 
 - Python 3.12+
@@ -67,6 +73,25 @@ make run
 ## UI Direction
 
 PulseTask aims for a premium, modern interface inspired by recent award-winning digital products while staying native to GNOME and accessible under stress.
+
+## Roadmap
+
+1. Close MVP functional gaps:
+	- Persist user preferences (default duration, archived visibility, sound profile, close-to-tray)
+	- Add destructive-action confirmations and safer task flows
+	- Expand expiration flow with configurable snooze options
+2. Nested task blocks and sequencing:
+	- Allow parent tasks with ordered child tasks
+	- Define execution order inside a block before starting
+	- Auto-notify when a child task ends and auto-start the next one with start notification
+3. Stabilize tray and desktop behavior across GNOME/Wayland/X11.
+4. Improve reliability and edge-case handling (suspend/resume, system time jumps, duplicate popups).
+5. Continue modern UX polish and keyboard-first accessibility.
+6. Build a full settings screen and runtime application of preferences.
+7. Harden Flatpak packaging and release metadata.
+8. Improve open-source collaboration workflows and issue hygiene.
+9. Add local observability metrics.
+10. Prepare V2 features (overlay, advanced stats, deeper GNOME integrations).
 
 ## License
 
