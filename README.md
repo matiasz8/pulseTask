@@ -59,6 +59,8 @@ make install-desktop
 
 `make install-desktop` installs a local desktop entry and icon so Ubuntu Dock shows PulseTask icon instead of the generic gear.
 
+If PulseTask does not appear in the app grid immediately, run `make install-desktop` again, then open it from Activities as "PulseTask" and pin it to Dock.
+
 ## Project Structure
 
 - `src/pulse_task/core`: domain model, timer logic, persistence
