@@ -1,0 +1,12 @@
+# Default owners
+* @pulsetask-maintainers
+
+# Core domain
+/src/pulse_task/core/ @pulsetask-maintainers
+
+# UI layer
+/src/pulse_task/ui/ @pulsetask-maintainers
+
+# Docs and community files
+/docs/ @pulsetask-maintainers
+*.md @pulsetask-maintainers
