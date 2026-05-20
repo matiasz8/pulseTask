@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.matiasz8.pulsetask</id>
+  <name>PulseTask</name>
+  <summary>Visible deadlines and real focus</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="com.matiasz8">
+    <name>PulseTask Contributors</name>
+  </developer>
+  <launchable type="desktop-id">com.matiasz8.pulsetask.desktop</launchable>
+  <description>
+    <p>
+      PulseTask is a Linux desktop task app for fixed-duration work sessions,
+      with clear countdowns and strong completion alerts.
+    </p>
+  </description>
+  <categories>
+    <category>Utility</category>
+    <category>Office</category>
+  </categories>
+  <url type="homepage">https://github.com/matiasz8/pulseTask</url>
+  <releases>
+    <release version="0.1.0" date="2026-05-20"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

@@ -165,3 +165,36 @@ def test_snooze_task_restarts_countdown(tmp_path: Path) -> None:
 
     assert snoozed.status == TaskStatus.RUNNING
     assert snoozed.remaining_seconds == 300
+
+
+def test_start_block_starts_first_subtask_by_sequence(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    parent = service.create_task("Morning block", 1200)
+    child_2 = service.create_subtask(parent.id, "Second", 300, sequence_order=2)
+    child_0 = service.create_subtask(parent.id, "First", 300, sequence_order=0)
+    child_1 = service.create_subtask(parent.id, "Third", 300, sequence_order=1)
+
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    started = service.start_block(parent.id, now=now)
+
+    assert started.id == child_0.id
+    assert started.status == TaskStatus.RUNNING
+    listed = service.list_subtasks(parent.id)
+    assert [task.id for task in listed] == [child_0.id, child_1.id, child_2.id]
+
+
+def test_expired_subtask_autostarts_next_subtask(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    parent = service.create_task("Block", 1200)
+    first = service.create_subtask(parent.id, "First", 60, sequence_order=0)
+    second = service.create_subtask(parent.id, "Second", 60, sequence_order=1)
+
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    service.start_task(first.id, now=now)
+    changed = service.tick(now=now + timedelta(seconds=61))
+
+    first_after = service.get_task(first.id)
+    second_after = service.get_task(second.id)
+    assert first_after.status == TaskStatus.EXPIRED
+    assert second_after.status == TaskStatus.RUNNING
+    assert any(task.id == second.id and task.status == TaskStatus.RUNNING for task in changed)

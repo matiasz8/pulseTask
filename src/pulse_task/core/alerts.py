@@ -57,6 +57,12 @@ class AlertManager:
             body=f"{title} - {remaining} remaining.",
         )
 
+    def notify_task_finished(self, title: str) -> None:
+        self.notification_backend.send(
+            title="Task finished",
+            body=f"{title} finished. Starting next task if available.",
+        )
+
     def maybe_play_countdown_cue(self, task_id: str, remaining_seconds: int) -> bool:
         if remaining_seconds < 1 or remaining_seconds > 3:
             return False

@@ -71,6 +71,21 @@ def test_alert_manager_notifies_task_started_with_hours() -> None:
     assert notify.calls == [("Task started", "Deep session - 1h and 10 min remaining.")]
 
 
+def test_alert_manager_notifies_task_finished() -> None:
+    notify = _FakeNotify()
+    manager = AlertManager(
+        audio_backend=_FakeAudio(),
+        notification_backend=notify,
+        debounce_seconds=0,
+    )
+
+    manager.notify_task_finished("Deep session")
+
+    assert notify.calls == [
+        ("Task finished", "Deep session finished. Starting next task if available."),
+    ]
+
+
 def test_countdown_cue_only_for_last_three_seconds_and_without_duplicates() -> None:
     audio = _FakeAudio()
     manager = AlertManager(

@@ -55,11 +55,16 @@ make lint
 make typecheck
 make run
 make install-desktop
+make flatpak-build
+make flatpak-install
+make flatpak-run
 ```
 
 `make install-desktop` installs a local desktop entry and icon so Ubuntu Dock shows PulseTask icon instead of the generic gear.
 
 If PulseTask does not appear in the app grid immediately, run `make install-desktop` again, then open it from Activities as "PulseTask" and pin it to Dock.
+
+Flatpak packaging baseline is available via `packaging/flatpak/com.matiasz8.pulsetask.json` and metadata in `resources/linux/com.matiasz8.pulsetask.metainfo.xml`.
 
 ## Project Structure
 
@@ -89,6 +94,7 @@ PulseTask aims for a premium, modern interface inspired by recent award-winning 
 	- Allow parent tasks with ordered child tasks
 	- Define execution order inside a block before starting
 	- Auto-notify when a child task ends and auto-start the next one with start notification
+	- Current progress: core model/persistence/service supports nested subtasks with sequence order and automatic start of next subtask on expiration
 3. Stabilize tray and desktop behavior across GNOME/Wayland/X11.
 4. Improve reliability and edge-case handling (suspend/resume, system time jumps, duplicate popups).
 5. Continue modern UX polish and keyboard-first accessibility.

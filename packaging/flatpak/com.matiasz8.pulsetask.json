@@ -1,0 +1,32 @@
+{
+  "app-id": "com.matiasz8.pulsetask",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "46",
+  "sdk": "org.gnome.Sdk",
+  "command": "pulsetask",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=fallback-x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--talk-name=org.freedesktop.Notifications"
+  ],
+  "modules": [
+    {
+      "name": "pulsetask",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --no-build-isolation --prefix=/app .",
+        "install -Dm644 resources/linux/com.matiasz8.pulsetask.desktop /app/share/applications/com.matiasz8.pulsetask.desktop",
+        "install -Dm644 src/pulse_task/ui/assets/com.matiasz8.pulsetask.svg /app/share/icons/hicolor/scalable/apps/com.matiasz8.pulsetask.svg",
+        "install -Dm644 resources/linux/com.matiasz8.pulsetask.metainfo.xml /app/share/metainfo/com.matiasz8.pulsetask.metainfo.xml"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "../.."
+        }
+      ]
+    }
+  ]
+}

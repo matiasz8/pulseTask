@@ -30,6 +30,27 @@ class TaskService:
         self.repository.upsert(task)
         return task
 
+    def create_subtask(
+        self,
+        parent_task_id: str,
+        title: str,
+        duration_seconds: int,
+        description: str = "",
+        sequence_order: int | None = None,
+    ) -> Task:
+        self.get_task(parent_task_id)
+        if sequence_order is None:
+            sequence_order = self._next_sequence_order(parent_task_id)
+        task = Task(
+            parent_task_id=parent_task_id,
+            sequence_order=sequence_order,
+            title=title.strip(),
+            description=description.strip(),
+            duration_seconds=duration_seconds,
+        )
+        self.repository.upsert(task)
+        return task
+
     def get_task(self, task_id: str) -> Task:
         task = self.repository.get(task_id)
         if task is None:
@@ -42,6 +63,14 @@ class TaskService:
     def list_archived_tasks(self) -> list[Task]:
         return [task for task in self.repository.list_all() if task.status == TaskStatus.ARCHIVED]
 
+    def list_subtasks(self, parent_task_id: str) -> list[Task]:
+        siblings = [
+            task
+            for task in self.repository.list_all()
+            if task.parent_task_id == parent_task_id and task.status != TaskStatus.ARCHIVED
+        ]
+        return sorted(siblings, key=self._task_sequence_sort_key)
+
     def start_task(self, task_id: str, now: datetime | None = None) -> Task:
         self._ensure_no_other_running(task_id)
         task = self.get_task(task_id)
@@ -50,6 +79,22 @@ class TaskService:
         self.alert_manager.clear_countdown_cues(started.id)
         self.alert_manager.notify_task_started(started.title, started.remaining_seconds)
         return started
+
+    def start_block(self, parent_task_id: str, now: datetime | None = None) -> Task:
+        subtasks = self.list_subtasks(parent_task_id)
+        candidate = next(
+            (
+                task
+                for task in subtasks
+                if task.status in {TaskStatus.PENDING, TaskStatus.PAUSED}
+            ),
+            None,
+        )
+        if candidate is None:
+            raise ValueError("No pending subtasks available to start")
+        if candidate.status == TaskStatus.PAUSED:
+            return self.resume_task(candidate.id, now=now)
+        return self.start_task(candidate.id, now=now)
 
     def pause_task(self, task_id: str, now: datetime | None = None) -> Task:
         task = self.get_task(task_id)
@@ -162,6 +207,10 @@ class TaskService:
                     self.alert_manager.alert_task_expired(
                         AlertEvent(task_id=refreshed.id, title=refreshed.title)
                     )
+                    self.alert_manager.notify_task_finished(refreshed.title)
+                    auto_started = self._start_next_subtask_if_any(refreshed, now=now)
+                    if auto_started is not None:
+                        changed.append(auto_started)
         return changed
 
     def recover_running_tasks(self, now: datetime | None = None) -> list[Task]:
@@ -181,3 +230,52 @@ class TaskService:
         for existing in self.repository.list_all():
             if existing.id != selected_task_id and existing.status == TaskStatus.RUNNING:
                 raise ValueError("Only one running task is allowed at a time")
+
+    def _next_sequence_order(self, parent_task_id: str) -> int:
+        current = [
+            task.sequence_order
+            for task in self.repository.list_all()
+            if task.parent_task_id == parent_task_id and task.sequence_order is not None
+        ]
+        if not current:
+            return 0
+        return max(current) + 1
+
+    def _task_sequence_sort_key(self, task: Task) -> tuple[int, int, str]:
+        if task.sequence_order is None:
+            return (1, 0, task.created_at.isoformat())
+        return (0, task.sequence_order, task.created_at.isoformat())
+
+    def _start_next_subtask_if_any(
+        self,
+        expired_task: Task,
+        now: datetime | None = None,
+    ) -> Task | None:
+        if expired_task.parent_task_id is None:
+            return None
+
+        siblings = self.list_subtasks(expired_task.parent_task_id)
+        ordered_pending = [
+            task
+            for task in siblings
+            if task.status in {TaskStatus.PENDING, TaskStatus.PAUSED}
+        ]
+        if not ordered_pending:
+            return None
+
+        next_task = next(
+            (
+                task
+                for task in ordered_pending
+                if (
+                    expired_task.sequence_order is None
+                    or task.sequence_order is None
+                    or task.sequence_order > expired_task.sequence_order
+                )
+            ),
+            ordered_pending[0],
+        )
+
+        if next_task.status == TaskStatus.PAUSED:
+            return self.resume_task(next_task.id, now=now)
+        return self.start_task(next_task.id, now=now)

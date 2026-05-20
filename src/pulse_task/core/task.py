@@ -18,6 +18,8 @@ class TaskStatus(StrEnum):
 @dataclass(slots=True)
 class Task:
     id: str = field(default_factory=lambda: str(uuid4()))
+    parent_task_id: str | None = None
+    sequence_order: int | None = None
     title: str = ""
     description: str = ""
     duration_seconds: int = 0
@@ -36,6 +38,8 @@ class Task:
             self.remaining_seconds = self.duration_seconds
         if self.remaining_seconds < 0:
             raise ValueError("remaining_seconds cannot be negative")
+        if self.sequence_order is not None and self.sequence_order < 0:
+            raise ValueError("sequence_order cannot be negative")
 
     def is_terminal(self) -> bool:
         return self.status in {TaskStatus.COMPLETED, TaskStatus.EXPIRED, TaskStatus.ARCHIVED}

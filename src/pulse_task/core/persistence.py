@@ -50,6 +50,8 @@ class TaskRepository:
                 """
                 CREATE TABLE IF NOT EXISTS tasks (
                     id TEXT PRIMARY KEY,
+                    parent_task_id TEXT,
+                    sequence_order INTEGER,
                     title TEXT NOT NULL,
                     description TEXT NOT NULL,
                     duration_seconds INTEGER NOT NULL,
@@ -63,16 +65,27 @@ class TaskRepository:
                 )
                 """
             )
+            columns = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(tasks)").fetchall()
+            }
+            if "parent_task_id" not in columns:
+                conn.execute("ALTER TABLE tasks ADD COLUMN parent_task_id TEXT")
+            if "sequence_order" not in columns:
+                conn.execute("ALTER TABLE tasks ADD COLUMN sequence_order INTEGER")
 
     def upsert(self, task: Task) -> None:
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO tasks (
-                    id, title, description, duration_seconds, remaining_seconds, status,
+                    id, parent_task_id, sequence_order, title, description,
+                    duration_seconds, remaining_seconds, status,
                     created_at, started_at, target_at, paused_at, finished_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
+                    parent_task_id=excluded.parent_task_id,
+                    sequence_order=excluded.sequence_order,
                     title=excluded.title,
                     description=excluded.description,
                     duration_seconds=excluded.duration_seconds,
@@ -86,6 +99,8 @@ class TaskRepository:
                 """,
                 (
                     task.id,
+                    task.parent_task_id,
+                    task.sequence_order,
                     task.title,
                     task.description,
                     task.duration_seconds,
@@ -118,6 +133,8 @@ class TaskRepository:
     def _row_to_task(self, row: sqlite3.Row) -> Task:
         return Task(
             id=row["id"],
+            parent_task_id=row["parent_task_id"],
+            sequence_order=row["sequence_order"],
             title=row["title"],
             description=row["description"],
             duration_seconds=row["duration_seconds"],

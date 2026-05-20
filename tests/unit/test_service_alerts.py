@@ -40,9 +40,10 @@ def test_service_tick_triggers_alert_on_expiration(tmp_path: Path) -> None:
     service.tick(now=now + timedelta(seconds=61))
 
     assert audio.calls == 1
-    assert len(notify.calls) == 2
+    assert len(notify.calls) == 3
     assert notify.calls[0][0] == "Task started"
     assert notify.calls[1][0] == "Task expired"
+    assert notify.calls[2][0] == "Task finished"
 
 
 def test_service_tick_triggers_last_three_seconds_cues(tmp_path: Path) -> None:
