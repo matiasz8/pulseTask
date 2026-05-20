@@ -20,7 +20,7 @@ class Task:
     title: str = ""
     description: str = ""
     duration_seconds: int = 0
-    remaining_seconds: int = 0
+    remaining_seconds: int = -1
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     started_at: datetime | None = None
@@ -31,7 +31,7 @@ class Task:
     def __post_init__(self) -> None:
         if self.duration_seconds <= 0:
             raise ValueError("duration_seconds must be > 0")
-        if self.remaining_seconds == 0:
+        if self.remaining_seconds == -1:
             self.remaining_seconds = self.duration_seconds
         if self.remaining_seconds < 0:
             raise ValueError("remaining_seconds cannot be negative")
