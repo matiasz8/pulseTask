@@ -23,7 +23,9 @@ def launch_desktop_ui(service: TaskService) -> int:
     except Exception as exc:  # pragma: no cover - depends on local desktop setup
         print("GTK4/libadwaita is not available in this environment.")
         print("Install dependencies on Ubuntu:")
-        print("  sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1")
+        print("  sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libnotify-bin")
+        print("Then recreate the uv venv with system packages:")
+        print("  rm -rf .venv && make venv && make sync && make doctor-gtk")
         print(f"Details: {exc}")
         return 1
 

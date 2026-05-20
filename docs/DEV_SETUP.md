@@ -9,9 +9,20 @@
 ## Local Bootstrap
 
 ```bash
+sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libnotify-bin libcanberra-gtk3-module
 make venv
 make sync
+make doctor-gtk
 make ci
+```
+
+If you installed GTK dependencies after creating the virtual environment, recreate it:
+
+```bash
+rm -rf .venv
+make venv
+make sync
+make doctor-gtk
 ```
 
 ## Daily Commands
