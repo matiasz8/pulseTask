@@ -1,7 +1,7 @@
 UV ?= uv
 PYTHON ?= 3.12
 
-.PHONY: check-uv venv sync doctor-gtk test lint typecheck run ci
+.PHONY: check-uv venv sync doctor-gtk test lint typecheck run ci install-desktop uninstall-desktop
 
 check-uv:
 	@command -v $(UV) >/dev/null 2>&1 || (echo "uv is required. Install from https://docs.astral.sh/uv/getting-started/installation/" && exit 1)
@@ -28,3 +28,9 @@ run: check-uv
 	$(UV) run pulsetask
 
 ci: lint typecheck test
+
+install-desktop:
+	bash scripts/install-local-desktop.sh
+
+uninstall-desktop:
+	bash scripts/uninstall-local-desktop.sh

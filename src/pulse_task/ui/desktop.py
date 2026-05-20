@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # mypy: ignore-errors
 from dataclasses import dataclass
+from pathlib import Path
 from time import monotonic
 
 from pulse_task.core.preferences import PreferencesRepository, UserPreferences
@@ -42,6 +43,10 @@ def launch_desktop_ui(
         print(f"Details: {exc}")
         return 1
 
+    app_icon_name = "com.matiasz8.pulsetask"
+    if hasattr(Gtk.Window, "set_default_icon_name"):
+        Gtk.Window.set_default_icon_name(app_icon_name)
+
     def format_seconds(total: int) -> str:
         minutes, seconds = divmod(max(0, total), 60)
         hours, minutes = divmod(minutes, 60)
@@ -72,6 +77,8 @@ def launch_desktop_ui(
             self.tray_controller = None
             self.set_title("PulseTask")
             self.set_default_size(980, 620)
+            if hasattr(self, "set_icon_name"):
+                self.set_icon_name(app_icon_name)
 
             self.notice = RuntimeNotice(message="Ready")
             self.last_undo_action: UndoAction | None = None
@@ -86,31 +93,41 @@ def launch_desktop_ui(
 
             header = Gtk.HeaderBar()
             header.add_css_class("flat")
-            header.set_title_widget(Gtk.Label(label="PulseTask"))
+            title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            icon_path = Path(__file__).resolve().parent / "assets" / f"{app_icon_name}.svg"
+            if icon_path.exists():
+                app_icon = Gtk.Image.new_from_file(str(icon_path))
+                app_icon.set_pixel_size(18)
+                title_box.append(app_icon)
+            title_box.append(Gtk.Label(label="PulseTask"))
+            header.set_title_widget(title_box)
 
             archived_button = Gtk.Button(label="Show archived: Off")
             archived_button.add_css_class("pill")
             archived_button.connect("clicked", self._on_toggle_archived_clicked)
             self.archived_button = archived_button
-            header.pack_start(archived_button)
 
             settings_button = Gtk.Button(label="Settings")
             settings_button.add_css_class("pill")
             settings_button.connect("clicked", self._on_settings_clicked)
-            header.pack_start(settings_button)
 
             undo_button = Gtk.Button(label="Undo")
             undo_button.add_css_class("pill")
             undo_button.set_sensitive(False)
             undo_button.connect("clicked", self._on_undo_clicked)
             self.undo_button = undo_button
-            header.pack_start(undo_button)
 
             new_button = Gtk.Button(label="New task")
             new_button.add_css_class("suggested-action")
             new_button.connect("clicked", self._on_new_task_clicked)
-            header.pack_end(new_button)
             root.append(header)
+
+            controls_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            controls_row.append(archived_button)
+            controls_row.append(settings_button)
+            controls_row.append(undo_button)
+            controls_row.append(new_button)
+            root.append(controls_row)
 
             self.active_label = Gtk.Label(xalign=0)
             self.active_label.add_css_class("active-label")
@@ -464,8 +481,6 @@ def launch_desktop_ui(
             dialog.add_button("Close", Gtk.ResponseType.CLOSE)
             dialog.add_button("Snooze 1m", 101)
             dialog.add_button("Snooze 5m", 105)
-            dialog.add_button("Snooze 10m", 110)
-            dialog.add_button("Snooze 15m", 115)
 
             area = dialog.get_content_area()
             content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -495,8 +510,6 @@ def launch_desktop_ui(
             snooze_map = {
                 101: 1,
                 105: 5,
-                110: 10,
-                115: 15,
             }
             if response_id in snooze_map:
                 try:

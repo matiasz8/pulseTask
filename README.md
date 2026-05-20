@@ -29,7 +29,7 @@ MVP Block 1 status: completed.
 
 - Preferences persistence (default duration, archived visibility, sound profile, close-to-tray)
 - Destructive action safeguards (delete confirmation + undo for archive/delete)
-- Expiration flow with configurable snooze options (1/5/10/15 min)
+- Expiration flow with configurable snooze options (1/5 min)
 
 ## Planned Stack
 
@@ -54,7 +54,10 @@ make test
 make lint
 make typecheck
 make run
+make install-desktop
 ```
+
+`make install-desktop` installs a local desktop entry and icon so Ubuntu Dock shows PulseTask icon instead of the generic gear.
 
 ## Project Structure
 
