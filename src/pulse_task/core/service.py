@@ -10,12 +10,20 @@ from pulse_task.core.timer import TimerEngine
 class TaskService:
     """Coordinates task CRUD, timer transitions, and persistence."""
 
-    def __init__(self, repository: TaskRepository, timer_engine: TimerEngine | None = None) -> None:
+    def __init__(
+        self,
+        repository: TaskRepository,
+        timer_engine: TimerEngine | None = None,
+    ) -> None:
         self.repository = repository
         self.timer_engine = timer_engine or TimerEngine()
 
     def create_task(self, title: str, duration_seconds: int, description: str = "") -> Task:
-        task = Task(title=title.strip(), description=description.strip(), duration_seconds=duration_seconds)
+        task = Task(
+            title=title.strip(),
+            description=description.strip(),
+            duration_seconds=duration_seconds,
+        )
         self.repository.upsert(task)
         return task
 
