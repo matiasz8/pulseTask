@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from pulse_task.core.alerts import AlertEvent, AlertManager
 from pulse_task.core.persistence import TaskRepository
 from pulse_task.core.task import Task, TaskStatus
 from pulse_task.core.timer import TimerEngine
@@ -14,9 +15,11 @@ class TaskService:
         self,
         repository: TaskRepository,
         timer_engine: TimerEngine | None = None,
+        alert_manager: AlertManager | None = None,
     ) -> None:
         self.repository = repository
         self.timer_engine = timer_engine or TimerEngine()
+        self.alert_manager = alert_manager or AlertManager()
 
     def create_task(self, title: str, duration_seconds: int, description: str = "") -> Task:
         task = Task(
@@ -82,6 +85,10 @@ class TaskService:
             if refreshed.remaining_seconds != before_remaining or refreshed.status != before_status:
                 self.repository.upsert(refreshed)
                 changed.append(refreshed)
+                if before_status == TaskStatus.RUNNING and refreshed.status == TaskStatus.EXPIRED:
+                    self.alert_manager.alert_task_expired(
+                        AlertEvent(task_id=refreshed.id, title=refreshed.title)
+                    )
         return changed
 
     def recover_running_tasks(self, now: datetime | None = None) -> list[Task]:
