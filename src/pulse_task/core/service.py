@@ -37,7 +37,10 @@ class TaskService:
         return task
 
     def list_tasks(self) -> list[Task]:
-        return self.repository.list_all()
+        return [task for task in self.repository.list_all() if task.status != TaskStatus.ARCHIVED]
+
+    def list_archived_tasks(self) -> list[Task]:
+        return [task for task in self.repository.list_all() if task.status == TaskStatus.ARCHIVED]
 
     def start_task(self, task_id: str, now: datetime | None = None) -> Task:
         self._ensure_no_other_running(task_id)
@@ -80,7 +83,7 @@ class TaskService:
         duration_seconds = duration_minutes * 60
         task.duration_seconds = duration_seconds
         task.remaining_seconds = duration_seconds
-        if task.status in {TaskStatus.COMPLETED, TaskStatus.EXPIRED}:
+        if task.status in {TaskStatus.COMPLETED, TaskStatus.EXPIRED, TaskStatus.ARCHIVED}:
             task.status = TaskStatus.PENDING
             task.finished_at = None
 
@@ -101,6 +104,32 @@ class TaskService:
         task.finished_at = now
         self.repository.upsert(task)
         return task
+
+    def archive_task(self, task_id: str) -> Task:
+        task = self.get_task(task_id)
+        if task.status == TaskStatus.RUNNING:
+            raise ValueError("Pause the task before archiving")
+        task.status = TaskStatus.ARCHIVED
+        task.target_at = None
+        self.repository.upsert(task)
+        return task
+
+    def delete_task(self, task_id: str) -> None:
+        self.repository.delete(task_id)
+
+    def snooze_task(self, task_id: str, minutes: int, now: datetime | None = None) -> Task:
+        if minutes <= 0:
+            raise ValueError("Snooze minutes must be > 0")
+        self._ensure_no_other_running(task_id)
+        task = self.get_task(task_id)
+        task.remaining_seconds = minutes * 60
+        task.status = TaskStatus.PAUSED
+        task.finished_at = None
+        task.target_at = None
+        snoozed = self.timer_engine.resume(task, now=now)
+        self.repository.upsert(snoozed)
+        self.alert_manager.notify_task_started(snoozed.title, snoozed.remaining_seconds)
+        return snoozed
 
     def tick(self, now: datetime | None = None) -> list[Task]:
         changed: list[Task] = []

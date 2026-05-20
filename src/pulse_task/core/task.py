@@ -12,6 +12,7 @@ class TaskStatus(StrEnum):
     PAUSED = "paused"
     COMPLETED = "completed"
     EXPIRED = "expired"
+    ARCHIVED = "archived"
 
 
 @dataclass(slots=True)
@@ -37,4 +38,4 @@ class Task:
             raise ValueError("remaining_seconds cannot be negative")
 
     def is_terminal(self) -> bool:
-        return self.status in {TaskStatus.COMPLETED, TaskStatus.EXPIRED}
+        return self.status in {TaskStatus.COMPLETED, TaskStatus.EXPIRED, TaskStatus.ARCHIVED}

@@ -100,3 +100,42 @@ def test_update_task_rejects_running_task(tmp_path: Path) -> None:
         assert "Pause the task" in str(exc)
     else:
         raise AssertionError("Expected ValueError when editing a running task")
+
+
+def test_archive_task_hides_from_default_listing(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    task = service.create_task("Archive me", 300)
+
+    service.archive_task(task.id)
+
+    assert len(service.list_tasks()) == 0
+    archived = service.list_archived_tasks()
+    assert len(archived) == 1
+    assert archived[0].status == TaskStatus.ARCHIVED
+
+
+def test_delete_task_removes_entity(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    task = service.create_task("Delete me", 300)
+
+    service.delete_task(task.id)
+
+    try:
+        service.get_task(task.id)
+    except ValueError as exc:
+        assert "Task not found" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for deleted task")
+
+
+def test_snooze_task_restarts_countdown(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    task = service.create_task("Snooze", 60)
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    service.start_task(task.id, now=now)
+    service.tick(now=now + timedelta(seconds=61))
+
+    snoozed = service.snooze_task(task.id, minutes=5, now=now + timedelta(seconds=62))
+
+    assert snoozed.status == TaskStatus.RUNNING
+    assert snoozed.remaining_seconds == 300

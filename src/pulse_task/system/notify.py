@@ -12,7 +12,7 @@ class NotificationBackend:
         if command is None:
             return
         subprocess.run(
-            [command, title, body],
+            [command, "-a", "PulseTask", title, body],
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

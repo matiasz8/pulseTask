@@ -19,7 +19,7 @@ def launch_desktop_ui(service: TaskService) -> int:
 
         gi.require_version("Gtk", "4.0")
         gi.require_version("Adw", "1")
-        from gi.repository import Adw, GLib, Gtk
+        from gi.repository import Adw, Gdk, GLib, Gtk
     except Exception as exc:  # pragma: no cover - depends on local desktop setup
         print("GTK4/libadwaita is not available in this environment.")
         print("Install dependencies on Ubuntu:")
@@ -43,10 +43,12 @@ def launch_desktop_ui(service: TaskService) -> int:
         def __init__(self, app: Adw.Application, app_service: TaskService) -> None:
             super().__init__(application=app)
             self.service = app_service
+            self.show_archived = False
             self.set_title("PulseTask")
             self.set_default_size(980, 620)
 
             self.notice = RuntimeNotice(message="Ready")
+            self._install_css()
 
             root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
             root.set_margin_top(16)
@@ -55,13 +57,23 @@ def launch_desktop_ui(service: TaskService) -> int:
             root.set_margin_end(16)
 
             header = Gtk.HeaderBar()
+            header.add_css_class("flat")
             header.set_title_widget(Gtk.Label(label="PulseTask"))
+
+            archived_button = Gtk.Button(label="Show archived: Off")
+            archived_button.add_css_class("pill")
+            archived_button.connect("clicked", self._on_toggle_archived_clicked)
+            self.archived_button = archived_button
+            header.pack_start(archived_button)
+
             new_button = Gtk.Button(label="New task")
+            new_button.add_css_class("suggested-action")
             new_button.connect("clicked", self._on_new_task_clicked)
             header.pack_end(new_button)
             root.append(header)
 
             self.active_label = Gtk.Label(xalign=0)
+            self.active_label.add_css_class("active-label")
             self.active_label.set_markup("<b>No active task</b>")
             root.append(self.active_label)
 
@@ -76,17 +88,119 @@ def launch_desktop_ui(service: TaskService) -> int:
             root.append(scroller)
 
             self.set_content(root)
+            self._setup_keyboard_shortcuts()
             self._refresh_view()
 
             GLib.timeout_add_seconds(1, self._on_timer_tick)
 
+        def _install_css(self) -> None:
+            css = """
+            .task-card {
+                background: alpha(@theme_fg_color, 0.04);
+                border-radius: 12px;
+                border: 1px solid alpha(@theme_fg_color, 0.12);
+                padding: 4px;
+            }
+            .active-label {
+                font-size: 1.05rem;
+            }
+            .status-running {
+                color: #1f7a1f;
+                font-weight: 600;
+            }
+            .status-paused {
+                color: #c06b00;
+                font-weight: 600;
+            }
+            .status-expired {
+                color: #bb1e1e;
+                font-weight: 700;
+            }
+            .status-archived {
+                color: #5c6370;
+            }
+            .pill {
+                border-radius: 999px;
+            }
+            """
+            provider = Gtk.CssProvider()
+            provider.load_from_data(css.encode("utf-8"))
+            Gtk.StyleContext.add_provider_for_display(
+                self.get_display(),
+                provider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+            )
+
+        def _setup_keyboard_shortcuts(self) -> None:
+            key_controller = Gtk.EventControllerKey.new()
+            key_controller.connect("key-pressed", self._on_key_pressed)
+            self.add_controller(key_controller)
+
+        def _on_key_pressed(
+            self,
+            _controller: Gtk.EventControllerKey,
+            keyval: int,
+            _keycode: int,
+            state: Gdk.ModifierType,
+        ) -> bool:
+            ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
+            if ctrl and keyval in {Gdk.KEY_n, Gdk.KEY_N}:
+                self._on_new_task_clicked(Gtk.Button())
+                return True
+            if keyval == Gdk.KEY_space:
+                self._toggle_active_task()
+                return True
+            return False
+
+        def _toggle_active_task(self) -> None:
+            tasks = self._visible_tasks()
+            running = next((task for task in tasks if task.status == TaskStatus.RUNNING), None)
+            try:
+                if running is not None:
+                    self.service.pause_task(running.id)
+                    self._set_notice("Task paused")
+                else:
+                    resumable = next(
+                        (
+                            task
+                            for task in tasks
+                            if task.status in {TaskStatus.PAUSED, TaskStatus.PENDING}
+                        ),
+                        None,
+                    )
+                    if resumable is None:
+                        return
+                    if resumable.status == TaskStatus.PAUSED:
+                        self.service.resume_task(resumable.id)
+                    else:
+                        self.service.start_task(resumable.id)
+                    self._set_notice("Task running")
+            except Exception as exc:
+                self._set_notice(f"Cannot toggle task: {exc}", is_error=True)
+            self._refresh_view()
+
+        def _visible_tasks(self) -> list[Task]:
+            tasks = self.service.list_tasks()
+            if self.show_archived:
+                tasks.extend(self.service.list_archived_tasks())
+            return tasks
+
         def _on_timer_tick(self) -> bool:
             try:
-                self.service.tick()
+                changed = self.service.tick()
+                for task in changed:
+                    if task.status == TaskStatus.EXPIRED:
+                        self._open_expired_dialog(task)
                 self._refresh_view()
             except Exception as exc:  # pragma: no cover - UI safety
                 self._set_notice(f"Tick error: {exc}", is_error=True)
             return True
+
+        def _on_toggle_archived_clicked(self, _button: Gtk.Button) -> None:
+            self.show_archived = not self.show_archived
+            state_label = "On" if self.show_archived else "Off"
+            self.archived_button.set_label(f"Show archived: {state_label}")
+            self._refresh_view()
 
         def _on_new_task_clicked(self, _button: Gtk.Button) -> None:
             dialog = Gtk.Dialog(title="Create task", transient_for=self, modal=True)
@@ -162,6 +276,27 @@ def launch_desktop_ui(service: TaskService) -> int:
                         self._set_notice("Task created")
                     except Exception as exc:
                         self._set_notice(f"Cannot create task: {exc}", is_error=True)
+            dialog.close()
+            self._refresh_view()
+
+        def _open_expired_dialog(self, task: Task) -> None:
+            dialog = Gtk.Dialog(title="Task expired", transient_for=self, modal=True)
+            dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+            dialog.add_button("Snooze 5m", Gtk.ResponseType.APPLY)
+
+            area = dialog.get_content_area()
+            area.append(Gtk.Label(label=f"{task.title} reached its deadline.", xalign=0))
+
+            dialog.connect("response", self._on_expired_response, task.id)
+            dialog.present()
+
+        def _on_expired_response(self, dialog: Gtk.Dialog, response_id: int, task_id: str) -> None:
+            if response_id == Gtk.ResponseType.APPLY:
+                try:
+                    self.service.snooze_task(task_id, minutes=5)
+                    self._set_notice("Task snoozed for 5 minutes")
+                except Exception as exc:
+                    self._set_notice(f"Cannot snooze task: {exc}", is_error=True)
             dialog.close()
             self._refresh_view()
 
@@ -253,14 +388,16 @@ def launch_desktop_ui(service: TaskService) -> int:
                     break
                 self.task_list.remove(child)
 
-            tasks = self.service.list_tasks()
+            tasks = self._visible_tasks()
             running = next((task for task in tasks if task.status == TaskStatus.RUNNING), None)
             if running is None:
                 self.active_label.set_markup("<b>No active task</b>")
+                self.set_title("PulseTask")
             else:
                 self.active_label.set_markup(
                     f"<b>Active:</b> {running.title} - {format_seconds(running.remaining_seconds)}"
                 )
+                self.set_title(f"[{format_seconds(running.remaining_seconds)}] PulseTask")
 
             for task in tasks:
                 self.task_list.append(self._build_task_row(task))
@@ -268,10 +405,11 @@ def launch_desktop_ui(service: TaskService) -> int:
         def _build_task_row(self, task: Task) -> Gtk.ListBoxRow:
             row = Gtk.ListBoxRow()
             wrap = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-            wrap.set_margin_top(10)
-            wrap.set_margin_bottom(10)
-            wrap.set_margin_start(10)
-            wrap.set_margin_end(10)
+            wrap.add_css_class("task-card")
+            wrap.set_margin_top(8)
+            wrap.set_margin_bottom(8)
+            wrap.set_margin_start(8)
+            wrap.set_margin_end(8)
 
             top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             title = Gtk.Label(xalign=0)
@@ -280,6 +418,14 @@ def launch_desktop_ui(service: TaskService) -> int:
             top.append(title)
 
             status = Gtk.Label(label=task.status.value.title())
+            if task.status == TaskStatus.RUNNING:
+                status.add_css_class("status-running")
+            elif task.status == TaskStatus.PAUSED:
+                status.add_css_class("status-paused")
+            elif task.status == TaskStatus.EXPIRED:
+                status.add_css_class("status-expired")
+            elif task.status == TaskStatus.ARCHIVED:
+                status.add_css_class("status-archived")
             top.append(status)
             wrap.append(top)
 
@@ -308,13 +454,26 @@ def launch_desktop_ui(service: TaskService) -> int:
                 pause_btn.connect("clicked", self._on_pause_clicked, task.id)
                 actions.append(pause_btn)
 
-            reset_btn = Gtk.Button(label="Reset")
-            reset_btn.connect("clicked", self._on_reset_clicked, task.id)
-            actions.append(reset_btn)
+            if task.status != TaskStatus.ARCHIVED:
+                reset_btn = Gtk.Button(label="Reset")
+                reset_btn.connect("clicked", self._on_reset_clicked, task.id)
+                actions.append(reset_btn)
 
-            edit_btn = Gtk.Button(label="Edit")
-            edit_btn.connect("clicked", self._on_edit_clicked, task.id)
-            actions.append(edit_btn)
+                edit_btn = Gtk.Button(label="Edit")
+                edit_btn.connect("clicked", self._on_edit_clicked, task.id)
+                actions.append(edit_btn)
+
+                archive_btn = Gtk.Button(label="Archive")
+                archive_btn.connect("clicked", self._on_archive_clicked, task.id)
+                actions.append(archive_btn)
+            else:
+                restore_btn = Gtk.Button(label="Unarchive")
+                restore_btn.connect("clicked", self._on_unarchive_clicked, task.id)
+                actions.append(restore_btn)
+
+            delete_btn = Gtk.Button(label="Delete")
+            delete_btn.connect("clicked", self._on_delete_clicked, task.id)
+            actions.append(delete_btn)
 
             wrap.append(actions)
             row.set_child(wrap)
@@ -351,6 +510,36 @@ def launch_desktop_ui(service: TaskService) -> int:
         def _on_edit_clicked(self, _button: Gtk.Button, task_id: str) -> None:
             task = self.service.get_task(task_id)
             self._open_edit_task_dialog(task)
+
+        def _on_archive_clicked(self, _button: Gtk.Button, task_id: str) -> None:
+            try:
+                self.service.archive_task(task_id)
+                self._set_notice("Task archived")
+            except Exception as exc:
+                self._set_notice(f"Cannot archive task: {exc}", is_error=True)
+            self._refresh_view()
+
+        def _on_unarchive_clicked(self, _button: Gtk.Button, task_id: str) -> None:
+            try:
+                task = self.service.get_task(task_id)
+                self.service.update_task(
+                    task_id,
+                    title=task.title,
+                    description=task.description,
+                    duration_minutes=format_minutes(task.duration_seconds),
+                )
+                self._set_notice("Task unarchived")
+            except Exception as exc:
+                self._set_notice(f"Cannot unarchive task: {exc}", is_error=True)
+            self._refresh_view()
+
+        def _on_delete_clicked(self, _button: Gtk.Button, task_id: str) -> None:
+            try:
+                self.service.delete_task(task_id)
+                self._set_notice("Task deleted")
+            except Exception as exc:
+                self._set_notice(f"Cannot delete task: {exc}", is_error=True)
+            self._refresh_view()
 
     class PulseTaskApplication(Adw.Application):
         def __init__(self, app_service: TaskService) -> None:
