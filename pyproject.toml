@@ -34,6 +34,7 @@ dev = [
 
 [project.scripts]
 pulsetask = "pulse_task.__main__:main"
+pulsetask-metrics = "pulse_task.metrics_report:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

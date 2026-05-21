@@ -54,6 +54,7 @@ make test
 make lint
 make typecheck
 make run
+make metrics-report
 make install-desktop
 make flatpak-validate
 make flatpak-build
@@ -76,6 +77,7 @@ Flatpak packaging baseline is available via `packaging/flatpak/com.matiasz8.puls
 - `src/pulse_task/system`: desktop integration adapters (scaffold)
 - `tests`: unit/integration/manual test suites
 - `.github`: workflows and contribution templates
+- `docs/V2_PREPARATION.md`: implementation-ready V2 planning scope
 
 ## Collaboration
 
@@ -113,6 +115,7 @@ PulseTask aims for a premium, modern interface inspired by recent award-winning 
 9. Add local observability metrics.
 	- Status: completed (local persisted lifecycle counters wired through TaskService and covered by unit tests)
 10. Prepare V2 features (overlay, advanced stats, deeper GNOME integrations).
+	- Status: completed (V2 technical plan, advanced stats computation module, and local metrics report command)
 
 ## License
 
