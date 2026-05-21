@@ -792,6 +792,14 @@ def launch_desktop_ui(
                     label=f"Subtask of block {task.parent_task_id[:8]}",
                 )
                 wrap.append(subtask_meta)
+            else:
+                completed, total = self.service.get_block_progress(task.id)
+                if total > 0:
+                    progress = Gtk.Label(
+                        xalign=0,
+                        label=f"Block progress: {completed}/{total} completed",
+                    )
+                    wrap.append(progress)
 
             if task.description:
                 desc = Gtk.Label(xalign=0, label=task.description)
@@ -807,6 +815,11 @@ def launch_desktop_ui(
                 pause_btn = Gtk.Button(label="Pause")
                 pause_btn.connect("clicked", self._on_pause_clicked, task.id)
                 actions.append(pause_btn)
+
+            if task.status in {TaskStatus.PENDING, TaskStatus.PAUSED, TaskStatus.RUNNING}:
+                complete_btn = Gtk.Button(label="Complete")
+                complete_btn.connect("clicked", self._on_complete_clicked, task.id)
+                actions.append(complete_btn)
 
             if task.status != TaskStatus.ARCHIVED:
                 reset_btn = Gtk.Button(label="Reset")
@@ -829,6 +842,14 @@ def launch_desktop_ui(
                     start_block_btn = Gtk.Button(label="Start block")
                     start_block_btn.connect("clicked", self._on_start_block_clicked, task.id)
                     actions.append(start_block_btn)
+                else:
+                    up_btn = Gtk.Button(label="Move up")
+                    up_btn.connect("clicked", self._on_move_subtask_clicked, task.id, -1)
+                    actions.append(up_btn)
+
+                    down_btn = Gtk.Button(label="Move down")
+                    down_btn.connect("clicked", self._on_move_subtask_clicked, task.id, 1)
+                    actions.append(down_btn)
             else:
                 restore_btn = Gtk.Button(label="Unarchive")
                 restore_btn.connect("clicked", self._on_unarchive_clicked, task.id)
@@ -860,6 +881,14 @@ def launch_desktop_ui(
                 self._set_notice("Task paused")
             except Exception as exc:
                 self._set_notice(f"Cannot pause task: {exc}", is_error=True)
+            self._refresh_view()
+
+        def _on_complete_clicked(self, _button: Gtk.Button, task_id: str) -> None:
+            try:
+                self.service.complete_task(task_id)
+                self._set_notice("Task completed")
+            except Exception as exc:
+                self._set_notice(f"Cannot complete task: {exc}", is_error=True)
             self._refresh_view()
 
         def _on_reset_clicked(self, _button: Gtk.Button, task_id: str) -> None:
@@ -986,6 +1015,19 @@ def launch_desktop_ui(
                 self._set_notice(f"Block started with: {started.title}")
             except Exception as exc:
                 self._set_notice(f"Cannot start block: {exc}", is_error=True)
+            self._refresh_view()
+
+        def _on_move_subtask_clicked(
+            self,
+            _button: Gtk.Button,
+            task_id: str,
+            direction: int,
+        ) -> None:
+            try:
+                self.service.reorder_subtask(task_id, direction)
+                self._set_notice("Subtask reordered")
+            except Exception as exc:
+                self._set_notice(f"Cannot reorder subtask: {exc}", is_error=True)
             self._refresh_view()
 
         def _on_archive_clicked(self, _button: Gtk.Button, task_id: str) -> None:

@@ -198,3 +198,32 @@ def test_expired_subtask_autostarts_next_subtask(tmp_path: Path) -> None:
     assert first_after.status == TaskStatus.EXPIRED
     assert second_after.status == TaskStatus.RUNNING
     assert any(task.id == second.id and task.status == TaskStatus.RUNNING for task in changed)
+
+
+def test_reorder_subtask_swaps_order_with_neighbor(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    parent = service.create_task("Block", 1200)
+    first = service.create_subtask(parent.id, "First", 60, sequence_order=0)
+    second = service.create_subtask(parent.id, "Second", 60, sequence_order=1)
+    third = service.create_subtask(parent.id, "Third", 60, sequence_order=2)
+
+    service.reorder_subtask(second.id, -1)
+
+    listed = service.list_subtasks(parent.id)
+    assert [task.id for task in listed] == [second.id, first.id, third.id]
+
+
+def test_manual_complete_subtask_autostarts_next(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    parent = service.create_task("Block", 1200)
+    first = service.create_subtask(parent.id, "First", 60, sequence_order=0)
+    second = service.create_subtask(parent.id, "Second", 60, sequence_order=1)
+
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    service.start_task(first.id, now=now)
+    service.complete_task(first.id, now=now + timedelta(seconds=10))
+
+    first_after = service.get_task(first.id)
+    second_after = service.get_task(second.id)
+    assert first_after.status == TaskStatus.COMPLETED
+    assert second_after.status == TaskStatus.RUNNING

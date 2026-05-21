@@ -94,7 +94,7 @@ PulseTask aims for a premium, modern interface inspired by recent award-winning 
 	- Allow parent tasks with ordered child tasks
 	- Define execution order inside a block before starting
 	- Auto-notify when a child task ends and auto-start the next one with start notification
-	- Current progress: core model/persistence/service plus initial desktop UI (add subtask + start block actions)
+	- Current progress: core model/persistence/service plus desktop UI for add subtask, start block, reorder subtasks, and block progress display
 3. Stabilize tray and desktop behavior across GNOME/Wayland/X11.
 4. Improve reliability and edge-case handling (suspend/resume, system time jumps, duplicate popups).
 5. Continue modern UX polish and keyboard-first accessibility.

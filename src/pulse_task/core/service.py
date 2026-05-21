@@ -71,6 +71,50 @@ class TaskService:
         ]
         return sorted(siblings, key=self._task_sequence_sort_key)
 
+    def get_block_progress(self, parent_task_id: str) -> tuple[int, int]:
+        subtasks = self.list_subtasks(parent_task_id)
+        total = len(subtasks)
+        completed = len(
+            [
+                task
+                for task in subtasks
+                if task.status in {TaskStatus.COMPLETED, TaskStatus.EXPIRED}
+            ]
+        )
+        return completed, total
+
+    def reorder_subtask(self, task_id: str, direction: int) -> Task:
+        if direction not in {-1, 1}:
+            raise ValueError("direction must be -1 or 1")
+        task = self.get_task(task_id)
+        if task.parent_task_id is None:
+            raise ValueError("Only subtasks can be reordered")
+
+        siblings = self.list_subtasks(task.parent_task_id)
+        index = next((i for i, item in enumerate(siblings) if item.id == task_id), None)
+        if index is None:
+            raise ValueError("Subtask not found in block")
+
+        swap_index = index + direction
+        if swap_index < 0 or swap_index >= len(siblings):
+            return task
+
+        current = siblings[index]
+        other = siblings[swap_index]
+        current_order = current.sequence_order
+        other_order = other.sequence_order
+
+        if current_order is None:
+            current_order = index
+        if other_order is None:
+            other_order = swap_index
+
+        current.sequence_order = other_order
+        other.sequence_order = current_order
+        self.repository.upsert(current)
+        self.repository.upsert(other)
+        return current
+
     def start_task(self, task_id: str, now: datetime | None = None) -> Task:
         self._ensure_no_other_running(task_id)
         task = self.get_task(task_id)
@@ -153,6 +197,8 @@ class TaskService:
         task.finished_at = now
         self.repository.upsert(task)
         self.alert_manager.clear_countdown_cues(task.id)
+        self.alert_manager.notify_task_finished(task.title)
+        self._start_next_subtask_if_any(task, now=now)
         return task
 
     def archive_task(self, task_id: str) -> Task:
