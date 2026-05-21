@@ -346,7 +346,45 @@ def launch_desktop_ui(
             tasks = self.service.list_tasks()
             if self.show_archived:
                 tasks.extend(self.service.list_archived_tasks())
-            return tasks
+
+            parents: list[Task] = []
+            children_by_parent: dict[str, list[Task]] = {}
+            orphan_children: list[Task] = []
+
+            parent_ids = {task.id for task in tasks if task.parent_task_id is None}
+            for task in tasks:
+                if task.parent_task_id is None:
+                    parents.append(task)
+                    continue
+                if task.parent_task_id not in parent_ids:
+                    orphan_children.append(task)
+                    continue
+                children_by_parent.setdefault(task.parent_task_id, []).append(task)
+
+            for children in children_by_parent.values():
+                children.sort(
+                    key=lambda item: (
+                        item.sequence_order is None,
+                        item.sequence_order if item.sequence_order is not None else 0,
+                        item.created_at.isoformat(),
+                    )
+                )
+
+            ordered: list[Task] = []
+            for parent in parents:
+                ordered.append(parent)
+                ordered.extend(children_by_parent.get(parent.id, []))
+
+            orphan_children.sort(
+                key=lambda item: (
+                    item.parent_task_id or "",
+                    item.sequence_order is None,
+                    item.sequence_order if item.sequence_order is not None else 0,
+                    item.created_at.isoformat(),
+                )
+            )
+            ordered.extend(orphan_children)
+            return ordered
 
         def _on_timer_tick(self) -> bool:
             try:
@@ -709,13 +747,21 @@ def launch_desktop_ui(
             wrap.add_css_class("task-card")
             wrap.set_margin_top(8)
             wrap.set_margin_bottom(8)
-            wrap.set_margin_start(8)
+            wrap.set_margin_start(24 if task.parent_task_id is not None else 8)
             wrap.set_margin_end(8)
 
             top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             title = Gtk.Label(xalign=0)
             title.set_hexpand(True)
-            title.set_markup(f"<b>{task.title}</b>")
+            if task.parent_task_id is None:
+                title.set_markup(f"<b>{task.title}</b>")
+            else:
+                order_label = (
+                    f"#{task.sequence_order + 1}"
+                    if task.sequence_order is not None
+                    else "#-"
+                )
+                title.set_markup(f"<b>↳ {order_label} {task.title}</b>")
             top.append(title)
 
             status = Gtk.Label(label=task.status.value.title())
@@ -739,6 +785,13 @@ def launch_desktop_ui(
                 ),
             )
             wrap.append(meta)
+
+            if task.parent_task_id is not None:
+                subtask_meta = Gtk.Label(
+                    xalign=0,
+                    label=f"Subtask of block {task.parent_task_id[:8]}",
+                )
+                wrap.append(subtask_meta)
 
             if task.description:
                 desc = Gtk.Label(xalign=0, label=task.description)
@@ -767,6 +820,15 @@ def launch_desktop_ui(
                 archive_btn = Gtk.Button(label="Archive")
                 archive_btn.connect("clicked", self._on_archive_clicked, task.id)
                 actions.append(archive_btn)
+
+                if task.parent_task_id is None:
+                    add_subtask_btn = Gtk.Button(label="Add subtask")
+                    add_subtask_btn.connect("clicked", self._on_add_subtask_clicked, task.id)
+                    actions.append(add_subtask_btn)
+
+                    start_block_btn = Gtk.Button(label="Start block")
+                    start_block_btn.connect("clicked", self._on_start_block_clicked, task.id)
+                    actions.append(start_block_btn)
             else:
                 restore_btn = Gtk.Button(label="Unarchive")
                 restore_btn.connect("clicked", self._on_unarchive_clicked, task.id)
@@ -811,6 +873,120 @@ def launch_desktop_ui(
         def _on_edit_clicked(self, _button: Gtk.Button, task_id: str) -> None:
             task = self.service.get_task(task_id)
             self._open_edit_task_dialog(task)
+
+        def _on_add_subtask_clicked(self, _button: Gtk.Button, parent_task_id: str) -> None:
+            self._open_create_subtask_dialog(parent_task_id)
+
+        def _next_subtask_order(self, parent_task_id: str) -> int:
+            subtasks = self.service.list_subtasks(parent_task_id)
+            orders = [task.sequence_order for task in subtasks if task.sequence_order is not None]
+            if not orders:
+                return 0
+            return max(orders) + 1
+
+        def _open_create_subtask_dialog(self, parent_task_id: str) -> None:
+            dialog = Gtk.Dialog(title="Create subtask", transient_for=self, modal=True)
+            dialog.set_default_size(580, 360)
+            dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+            dialog.add_button("Create", Gtk.ResponseType.OK)
+
+            area = dialog.get_content_area()
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            box.set_margin_top(20)
+            box.set_margin_bottom(20)
+            box.set_margin_start(20)
+            box.set_margin_end(20)
+
+            title_entry = Gtk.Entry(placeholder_text="Subtask title")
+            desc_entry = Gtk.Entry(placeholder_text="Description (optional)")
+
+            duration_adjustment = Gtk.Adjustment(
+                value=self.preferences.default_duration_minutes,
+                lower=1,
+                upper=480,
+                step_increment=1,
+                page_increment=10,
+                page_size=0,
+            )
+            duration_scale = Gtk.Scale(
+                orientation=Gtk.Orientation.HORIZONTAL,
+                adjustment=duration_adjustment,
+            )
+            duration_scale.set_hexpand(True)
+            duration_scale.set_draw_value(False)
+            duration_label = Gtk.Label(
+                label=format_minutes_human(self.preferences.default_duration_minutes),
+                xalign=0,
+            )
+            duration_scale.connect(
+                "value-changed",
+                self._on_minutes_scale_changed,
+                duration_label,
+            )
+
+            order_spin = Gtk.SpinButton.new_with_range(1, 999, 1)
+            order_spin.set_value(self._next_subtask_order(parent_task_id) + 1)
+
+            box.append(Gtk.Label(label="Title", xalign=0))
+            box.append(title_entry)
+            box.append(Gtk.Label(label="Description", xalign=0))
+            box.append(desc_entry)
+            box.append(Gtk.Label(label="Duration (minutes)", xalign=0))
+            box.append(duration_scale)
+            box.append(duration_label)
+            box.append(Gtk.Label(label="Order in block", xalign=0))
+            box.append(order_spin)
+            area.append(box)
+
+            dialog.connect(
+                "response",
+                self._on_create_subtask_response,
+                parent_task_id,
+                title_entry,
+                desc_entry,
+                duration_scale,
+                order_spin,
+            )
+            dialog.present()
+
+        def _on_create_subtask_response(
+            self,
+            dialog: Gtk.Dialog,
+            response_id: int,
+            parent_task_id: str,
+            title_entry: Gtk.Entry,
+            desc_entry: Gtk.Entry,
+            duration_scale: Gtk.Scale,
+            order_spin: Gtk.SpinButton,
+        ) -> None:
+            if response_id == Gtk.ResponseType.OK:
+                title = title_entry.get_text().strip()
+                if not title:
+                    self._set_notice("Title is required", is_error=True)
+                else:
+                    try:
+                        minutes = int(duration_scale.get_value())
+                        sequence_order = max(0, order_spin.get_value_as_int() - 1)
+                        self.service.create_subtask(
+                            parent_task_id=parent_task_id,
+                            title=title,
+                            description=desc_entry.get_text().strip(),
+                            duration_seconds=minutes * 60,
+                            sequence_order=sequence_order,
+                        )
+                        self._set_notice("Subtask created")
+                    except Exception as exc:
+                        self._set_notice(f"Cannot create subtask: {exc}", is_error=True)
+            dialog.close()
+            self._refresh_view()
+
+        def _on_start_block_clicked(self, _button: Gtk.Button, parent_task_id: str) -> None:
+            try:
+                started = self.service.start_block(parent_task_id)
+                self._set_notice(f"Block started with: {started.title}")
+            except Exception as exc:
+                self._set_notice(f"Cannot start block: {exc}", is_error=True)
+            self._refresh_view()
 
         def _on_archive_clicked(self, _button: Gtk.Button, task_id: str) -> None:
             try:
