@@ -152,9 +152,6 @@ def launch_desktop_ui(
 
             header = Adw.HeaderBar()
             header.set_title_widget(Gtk.Label(label="Settings"))
-            close_button = Gtk.Button(label="Close")
-            close_button.connect("clicked", lambda *_: self.close())
-            header.pack_end(close_button)
             root.append(header)
 
             scroller = Gtk.ScrolledWindow()
@@ -303,11 +300,6 @@ def launch_desktop_ui(
             title_box.append(Gtk.Label(label="PulseTask"))
             header.set_title_widget(title_box)
 
-            archived_button = Gtk.Button(label="Show archived: Off")
-            archived_button.add_css_class("pill")
-            archived_button.connect("clicked", self._on_toggle_archived_clicked)
-            self.archived_button = archived_button
-
             settings_button = Gtk.Button(label="Settings")
             settings_button.add_css_class("pill")
             settings_button.connect("clicked", self._on_settings_clicked)
@@ -331,7 +323,6 @@ def launch_desktop_ui(
             root.append(header)
 
             controls_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-            controls_row.append(archived_button)
             controls_row.append(settings_button)
             controls_row.append(shortcuts_button)
             controls_row.append(undo_button)
@@ -398,8 +389,6 @@ def launch_desktop_ui(
         def _sync_preferences_to_runtime(self) -> None:
             self.service.set_strong_final_sound(self.preferences.strong_final_sound)
             self.service.set_notifications_enabled(self.preferences.notifications_enabled)
-            state_label = "On" if self.show_archived else "Off"
-            self.archived_button.set_label(f"Show archived: {state_label}")
 
         def _apply_preferences(self, updated: UserPreferences, *, announce: bool = False) -> None:
             self.preferences = updated.normalized()
@@ -666,8 +655,6 @@ def launch_desktop_ui(
 
         def _on_toggle_archived_clicked(self, _button: Gtk.Button) -> None:
             self.show_archived = not self.show_archived
-            state_label = "On" if self.show_archived else "Off"
-            self.archived_button.set_label(f"Show archived: {state_label}")
             self._save_preferences()
             self._refresh_view()
 
