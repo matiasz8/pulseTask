@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/matiasz8/pulseTask/security/policy
+    about: Please report security vulnerabilities according to SECURITY.md.
+  - name: Question or support request
+    url: https://github.com/matiasz8/pulseTask/discussions
+    about: Use GitHub Discussions for usage questions and general support.

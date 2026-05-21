@@ -1,0 +1,102 @@
+name: Bug report
+description: Report a reproducible problem in PulseTask.
+title: "[Bug] "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this issue.
+        Please provide enough detail so maintainers can reproduce it quickly.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clear and concise description of the problem.
+      placeholder: "When I start a block with subtasks, the second subtask does not start automatically."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact ordered steps to reproduce.
+      placeholder: |
+        1. Create parent task and two subtasks
+        2. Start block
+        3. Wait for subtask 1 to expire
+        4. Observe behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: "The next subtask starts automatically and sends a start notification."
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: "The next subtask stays pending and no notification is shown."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PulseTask version or commit
+      description: Output from git log -1 --oneline or app version.
+      placeholder: "8f28c95"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Linux distribution
+      options:
+        - Ubuntu
+        - Fedora
+        - Debian
+        - Arch
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: desktop
+    attributes:
+      label: Desktop environment
+      options:
+        - GNOME
+        - KDE Plasma
+        - XFCE
+        - Cinnamon
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: session
+    attributes:
+      label: Session type
+      options:
+        - Wayland
+        - X11
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs or attach screenshots/recordings.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Validation checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I can reproduce this with current main or latest release.
+          required: true

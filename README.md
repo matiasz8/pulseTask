@@ -107,6 +107,7 @@ PulseTask aims for a premium, modern interface inspired by recent award-winning 
 7. Harden Flatpak packaging and release metadata.
 	- Status: completed (AppStream + desktop metadata validation script, CI packaging validation job, richer release metadata)
 8. Improve open-source collaboration workflows and issue hygiene.
+	- Status: completed (GitHub Issue Forms for bugs/features, template config with support/security routing, documented issue triage guide)
 9. Add local observability metrics.
 10. Prepare V2 features (overlay, advanced stats, deeper GNOME integrations).
 

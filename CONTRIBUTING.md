@@ -45,6 +45,14 @@ Before opening a PR:
 3. Update docs if behavior changed.
 4. Fill the PR template completely.
 
+## Issues and Discussions
+
+- Use the GitHub Issue Forms for bug reports and feature requests.
+- Keep one problem/request per issue.
+- Include reproduction details and environment data for bugs.
+- Use GitHub Discussions for usage questions and support.
+- Maintainers follow the triage process in `docs/ISSUE_TRIAGE.md`.
+
 ## Definition of Done
 
 - Tests added/updated and passing

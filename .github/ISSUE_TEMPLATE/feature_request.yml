@@ -1,0 +1,62 @@
+name: Feature request
+description: Suggest a new capability for PulseTask.
+title: "[Feature] "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement.
+        Please focus on the user problem and expected behavior.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user problem are you trying to solve?
+      placeholder: "I need to track repeating routines without recreating tasks every day."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe expected flow and behavior.
+      placeholder: "Add optional recurrence settings when creating a task..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds or other solutions evaluated.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope target
+      options:
+        - MVP
+        - V2+
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List objective checks for this proposal.
+      placeholder: |
+        - User can set recurrence when creating/editing a task
+        - Recurring tasks are visible in the task list with next due date
+        - Existing non-recurring flows keep working
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Validation checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: This request is written in English.
+          required: true
