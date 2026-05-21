@@ -29,3 +29,17 @@ jobs:
 
       - name: Pytest
         run: uv run pytest
+
+  packaging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install packaging validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y appstream desktop-file-utils
+
+      - name: Validate Flatpak/AppStream metadata
+        run: make flatpak-validate

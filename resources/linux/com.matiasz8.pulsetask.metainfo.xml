@@ -14,14 +14,39 @@
       PulseTask is a Linux desktop task app for fixed-duration work sessions,
       with clear countdowns and strong completion alerts.
     </p>
+    <p>
+      It is optimized for short, deadline-driven sessions and offers task sequencing,
+      tray behavior controls, keyboard-first workflows, and focused alerting.
+    </p>
   </description>
+  <provides>
+    <binary>pulsetask</binary>
+  </provides>
   <categories>
-    <category>Utility</category>
     <category>Office</category>
+    <category>ProjectManagement</category>
   </categories>
+  <keywords>
+    <keyword>timer</keyword>
+    <keyword>focus</keyword>
+    <keyword>tasks</keyword>
+    <keyword>productivity</keyword>
+    <keyword>countdown</keyword>
+  </keywords>
   <url type="homepage">https://github.com/matiasz8/pulseTask</url>
+  <url type="bugtracker">https://github.com/matiasz8/pulseTask/issues</url>
+  <url type="vcs-browser">https://github.com/matiasz8/pulseTask</url>
   <releases>
-    <release version="0.1.0" date="2026-05-20"/>
+    <release version="0.1.0" date="2026-05-20">
+      <description>
+        <ul>
+          <li>Added nested block sequencing with ordered subtasks and automatic transitions.</li>
+          <li>Improved desktop stability for tray restore/minimize behavior and expired-task popups.</li>
+          <li>Delivered a dedicated settings window with runtime preference updates.</li>
+          <li>Added Flatpak metadata validation workflow for release consistency.</li>
+        </ul>
+      </description>
+    </release>
   </releases>
   <content_rating type="oars-1.1"/>
 </component>

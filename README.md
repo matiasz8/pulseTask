@@ -55,6 +55,7 @@ make lint
 make typecheck
 make run
 make install-desktop
+make flatpak-validate
 make flatpak-build
 make flatpak-install
 make flatpak-run
@@ -104,6 +105,7 @@ PulseTask aims for a premium, modern interface inspired by recent award-winning 
 6. Build a full settings screen and runtime application of preferences.
 	- Status: completed (dedicated settings window with structured sections and live runtime application of preferences)
 7. Harden Flatpak packaging and release metadata.
+	- Status: completed (AppStream + desktop metadata validation script, CI packaging validation job, richer release metadata)
 8. Improve open-source collaboration workflows and issue hygiene.
 9. Add local observability metrics.
 10. Prepare V2 features (overlay, advanced stats, deeper GNOME integrations).

@@ -6,6 +6,6 @@ Comment=Visible deadlines and real focus
 Exec=pulsetask
 Icon=com.matiasz8.pulsetask
 Terminal=false
-Categories=Utility;Office;
+Categories=Office;ProjectManagement;
 StartupNotify=true
 StartupWMClass=com.matiasz8.pulsetask

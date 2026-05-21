@@ -1,7 +1,7 @@
 UV ?= uv
 PYTHON ?= 3.12
 
-.PHONY: check-uv venv sync doctor-gtk test lint typecheck run ci install-desktop uninstall-desktop flatpak-build flatpak-install flatpak-run
+.PHONY: check-uv venv sync doctor-gtk test lint typecheck run ci install-desktop uninstall-desktop flatpak-build flatpak-install flatpak-run flatpak-validate
 
 check-uv:
 	@command -v $(UV) >/dev/null 2>&1 || (echo "uv is required. Install from https://docs.astral.sh/uv/getting-started/installation/" && exit 1)
@@ -43,3 +43,6 @@ flatpak-install: flatpak-build
 
 flatpak-run:
 	flatpak run com.matiasz8.pulsetask
+
+flatpak-validate:
+	bash scripts/validate-flatpak-metadata.sh
