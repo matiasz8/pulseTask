@@ -27,7 +27,7 @@ class AlertManager:
         self.notification_backend = notification_backend or NotificationBackend()
         self.debounce_seconds = debounce_seconds
         self.notifications_enabled = notifications_enabled
-        self._last_alert_at = 0.0
+        self._last_alert_at: float | None = None
         self._countdown_cues: dict[str, int] = {}
 
     def set_notifications_enabled(self, enabled: bool) -> None:
@@ -35,7 +35,10 @@ class AlertManager:
 
     def alert_task_expired(self, event: AlertEvent) -> bool:
         now = monotonic()
-        if now - self._last_alert_at < self.debounce_seconds:
+        if (
+            self._last_alert_at is not None
+            and now - self._last_alert_at < self.debounce_seconds
+        ):
             return False
 
         self.audio_backend.play_alert()

@@ -47,6 +47,23 @@ def test_alert_manager_debounces_quick_repeats() -> None:
     assert len(notify.calls) == 1
 
 
+def test_first_alert_is_not_blocked_on_low_monotonic_uptime(monkeypatch) -> None:
+    audio = _FakeAudio()
+    notify = _FakeNotify()
+    manager = AlertManager(audio_backend=audio, notification_backend=notify, debounce_seconds=3600)
+
+    values = iter((10.0, 11.0))
+    monkeypatch.setattr("pulse_task.core.alerts.monotonic", lambda: next(values))
+
+    first = manager.alert_task_expired(AlertEvent(task_id="1", title="Task A"))
+    second = manager.alert_task_expired(AlertEvent(task_id="1", title="Task A"))
+
+    assert first is True
+    assert second is False
+    assert audio.calls == 1
+    assert len(notify.calls) == 1
+
+
 def test_alert_manager_notifies_task_started() -> None:
     audio = _FakeAudio()
     notify = _FakeNotify()
