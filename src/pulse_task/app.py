@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pulse_task.core.alerts import AlertManager
+from pulse_task.core.metrics import LocalMetrics
 from pulse_task.core.persistence import TaskRepository
 from pulse_task.core.preferences import PreferencesRepository
 from pulse_task.core.service import TaskService
@@ -21,7 +22,8 @@ def run() -> int:
         audio_backend=AudioBackend(preferences.strong_final_sound),
         notifications_enabled=preferences.notifications_enabled,
     )
-    service = TaskService(repository=repository, alert_manager=alert_manager)
+    metrics = LocalMetrics(data_dir / "metrics.json")
+    service = TaskService(repository=repository, alert_manager=alert_manager, metrics=metrics)
     service.recover_running_tasks()
 
     return launch_desktop_ui(service, preferences_repo, preferences)

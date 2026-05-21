@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from pulse_task.core.alerts import AlertEvent, AlertManager
+from pulse_task.core.metrics import MetricsSink, NoOpMetrics
 from pulse_task.core.persistence import TaskRepository
 from pulse_task.core.task import Task, TaskStatus
 from pulse_task.core.timer import TimerEngine
@@ -16,10 +17,12 @@ class TaskService:
         repository: TaskRepository,
         timer_engine: TimerEngine | None = None,
         alert_manager: AlertManager | None = None,
+        metrics: MetricsSink | None = None,
     ) -> None:
         self.repository = repository
         self.timer_engine = timer_engine or TimerEngine()
         self.alert_manager = alert_manager or AlertManager()
+        self.metrics = metrics or NoOpMetrics()
 
     def create_task(self, title: str, duration_seconds: int, description: str = "") -> Task:
         task = Task(
@@ -28,6 +31,7 @@ class TaskService:
             duration_seconds=duration_seconds,
         )
         self.repository.upsert(task)
+        self._increment_metric("tasks_created")
         return task
 
     def create_subtask(
@@ -49,6 +53,7 @@ class TaskService:
             duration_seconds=duration_seconds,
         )
         self.repository.upsert(task)
+        self._increment_metric("subtasks_created")
         return task
 
     def get_task(self, task_id: str) -> Task:
@@ -113,6 +118,7 @@ class TaskService:
         other.sequence_order = current_order
         self.repository.upsert(current)
         self.repository.upsert(other)
+        self._increment_metric("subtasks_reordered")
         return current
 
     def start_task(self, task_id: str, now: datetime | None = None) -> Task:
@@ -122,6 +128,7 @@ class TaskService:
         self.repository.upsert(started)
         self.alert_manager.clear_countdown_cues(started.id)
         self.alert_manager.notify_task_started(started.title, started.remaining_seconds)
+        self._increment_metric("tasks_started")
         return started
 
     def start_block(self, parent_task_id: str, now: datetime | None = None) -> Task:
@@ -153,6 +160,7 @@ class TaskService:
         paused = self.timer_engine.pause(task, now=now)
         self.repository.upsert(paused)
         self.alert_manager.clear_countdown_cues(paused.id)
+        self._increment_metric("tasks_paused")
         return paused
 
     def resume_task(self, task_id: str, now: datetime | None = None) -> Task:
@@ -162,6 +170,7 @@ class TaskService:
         self.repository.upsert(resumed)
         self.alert_manager.clear_countdown_cues(resumed.id)
         self.alert_manager.notify_task_started(resumed.title, resumed.remaining_seconds)
+        self._increment_metric("tasks_resumed")
         return resumed
 
     def update_task(
@@ -188,6 +197,7 @@ class TaskService:
             task.finished_at = None
 
         self.repository.upsert(task)
+        self._increment_metric("tasks_updated")
         return task
 
     def reset_task(self, task_id: str) -> Task:
@@ -195,6 +205,7 @@ class TaskService:
         reset = self.timer_engine.reset(task)
         self.repository.upsert(reset)
         self.alert_manager.clear_countdown_cues(reset.id)
+        self._increment_metric("tasks_reset")
         return reset
 
     def complete_task(self, task_id: str, now: datetime | None = None) -> Task:
@@ -206,6 +217,7 @@ class TaskService:
         self.repository.upsert(task)
         self.alert_manager.clear_countdown_cues(task.id)
         self.alert_manager.notify_task_finished(task.title)
+        self._increment_metric("tasks_completed")
         self._start_next_subtask_if_any(task, now=now)
         return task
 
@@ -217,16 +229,19 @@ class TaskService:
         task.target_at = None
         self.repository.upsert(task)
         self.alert_manager.clear_countdown_cues(task.id)
+        self._increment_metric("tasks_archived")
         return task
 
     def delete_task(self, task_id: str) -> None:
         self.repository.delete(task_id)
         self.alert_manager.clear_countdown_cues(task_id)
+        self._increment_metric("tasks_deleted")
 
     def restore_task_snapshot(self, task: Task) -> Task:
         if task.status == TaskStatus.RUNNING:
             self._ensure_no_other_running(task.id)
         self.repository.upsert(task)
+        self._increment_metric("tasks_restored")
         return task
 
     def snooze_task(self, task_id: str, minutes: int, now: datetime | None = None) -> Task:
@@ -242,6 +257,7 @@ class TaskService:
         self.repository.upsert(snoozed)
         self.alert_manager.clear_countdown_cues(snoozed.id)
         self.alert_manager.notify_task_started(snoozed.title, snoozed.remaining_seconds)
+        self._increment_metric("tasks_snoozed")
         return snoozed
 
     def tick(self, now: datetime | None = None) -> list[Task]:
@@ -257,6 +273,7 @@ class TaskService:
                 self.repository.upsert(refreshed)
                 changed.append(refreshed)
                 if before_status == TaskStatus.RUNNING and refreshed.status == TaskStatus.EXPIRED:
+                    self._increment_metric("tasks_expired")
                     self.alert_manager.clear_countdown_cues(refreshed.id)
                     self.alert_manager.alert_task_expired(
                         AlertEvent(task_id=refreshed.id, title=refreshed.title)
@@ -275,6 +292,7 @@ class TaskService:
             refreshed = self.timer_engine.recover_running_task(task, now=now)
             self.repository.upsert(refreshed)
             recovered.append(refreshed)
+            self._increment_metric("tasks_recovered")
         return recovered
 
     def set_strong_final_sound(self, enabled: bool) -> None:
@@ -302,6 +320,12 @@ class TaskService:
         if task.sequence_order is None:
             return (1, 0, task.created_at.isoformat())
         return (0, task.sequence_order, task.created_at.isoformat())
+
+    def _increment_metric(self, metric_name: str) -> None:
+        try:
+            self.metrics.increment(metric_name)
+        except Exception:
+            return
 
     def _start_next_subtask_if_any(
         self,

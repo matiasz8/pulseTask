@@ -63,6 +63,8 @@ make flatpak-run
 
 `make install-desktop` installs a local desktop entry and icon so Ubuntu Dock shows PulseTask icon instead of the generic gear.
 
+Local observability counters are stored in `~/.local/share/pulsetask/metrics.json`.
+
 If PulseTask does not appear in the app grid immediately, run `make install-desktop` again, then open it from Activities as "PulseTask" and pin it to Dock.
 
 Flatpak packaging baseline is available via `packaging/flatpak/com.matiasz8.pulsetask.json` and metadata in `resources/linux/com.matiasz8.pulsetask.metainfo.xml`.
@@ -109,6 +111,7 @@ PulseTask aims for a premium, modern interface inspired by recent award-winning 
 8. Improve open-source collaboration workflows and issue hygiene.
 	- Status: completed (GitHub Issue Forms for bugs/features, template config with support/security routing, documented issue triage guide)
 9. Add local observability metrics.
+	- Status: completed (local persisted lifecycle counters wired through TaskService and covered by unit tests)
 10. Prepare V2 features (overlay, advanced stats, deeper GNOME integrations).
 
 ## License
