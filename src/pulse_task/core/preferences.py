@@ -11,6 +11,7 @@ class UserPreferences:
     show_archived_by_default: bool = False
     strong_final_sound: bool = False
     close_to_tray: bool = True
+    notifications_enabled: bool = True
 
     def normalized(self) -> UserPreferences:
         minutes = max(1, min(480, int(self.default_duration_minutes)))
@@ -19,6 +20,7 @@ class UserPreferences:
             show_archived_by_default=bool(self.show_archived_by_default),
             strong_final_sound=bool(self.strong_final_sound),
             close_to_tray=bool(self.close_to_tray),
+            notifications_enabled=bool(self.notifications_enabled),
         )
 
 
@@ -44,6 +46,7 @@ class PreferencesRepository:
             show_archived_by_default=raw.get("show_archived_by_default", False),
             strong_final_sound=raw.get("strong_final_sound", False),
             close_to_tray=raw.get("close_to_tray", True),
+            notifications_enabled=raw.get("notifications_enabled", True),
         )
         return prefs.normalized()
 

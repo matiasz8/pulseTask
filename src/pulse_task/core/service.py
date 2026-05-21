@@ -116,8 +116,8 @@ class TaskService:
         return current
 
     def start_task(self, task_id: str, now: datetime | None = None) -> Task:
-        self._ensure_no_other_running(task_id)
         task = self.get_task(task_id)
+        self._ensure_no_other_running(task.id)
         started = self.timer_engine.start(task, now=now)
         self.repository.upsert(started)
         self.alert_manager.clear_countdown_cues(started.id)
@@ -125,6 +125,14 @@ class TaskService:
         return started
 
     def start_block(self, parent_task_id: str, now: datetime | None = None) -> Task:
+        parent = self.get_task(parent_task_id)
+        if parent.status == TaskStatus.RUNNING:
+            return parent
+        if parent.status == TaskStatus.PENDING:
+            return self.start_task(parent_task_id, now=now)
+        if parent.status == TaskStatus.PAUSED:
+            return self.resume_task(parent_task_id, now=now)
+
         subtasks = self.list_subtasks(parent_task_id)
         candidate = next(
             (
@@ -148,8 +156,8 @@ class TaskService:
         return paused
 
     def resume_task(self, task_id: str, now: datetime | None = None) -> Task:
-        self._ensure_no_other_running(task_id)
         task = self.get_task(task_id)
+        self._ensure_no_other_running(task.id)
         resumed = self.timer_engine.resume(task, now=now)
         self.repository.upsert(resumed)
         self.alert_manager.clear_countdown_cues(resumed.id)
@@ -224,8 +232,8 @@ class TaskService:
     def snooze_task(self, task_id: str, minutes: int, now: datetime | None = None) -> Task:
         if minutes <= 0:
             raise ValueError("Snooze minutes must be > 0")
-        self._ensure_no_other_running(task_id)
         task = self.get_task(task_id)
+        self._ensure_no_other_running(task.id)
         task.remaining_seconds = minutes * 60
         task.status = TaskStatus.PAUSED
         task.finished_at = None
@@ -272,6 +280,9 @@ class TaskService:
     def set_strong_final_sound(self, enabled: bool) -> None:
         self.alert_manager.audio_backend.set_strong_final_sound(enabled)
 
+    def set_notifications_enabled(self, enabled: bool) -> None:
+        self.alert_manager.set_notifications_enabled(enabled)
+
     def _ensure_no_other_running(self, selected_task_id: str) -> None:
         for existing in self.repository.list_all():
             if existing.id != selected_task_id and existing.status == TaskStatus.RUNNING:
@@ -298,7 +309,18 @@ class TaskService:
         now: datetime | None = None,
     ) -> Task | None:
         if expired_task.parent_task_id is None:
-            return None
+            siblings = self.list_subtasks(expired_task.id)
+            ordered_pending = [
+                task
+                for task in siblings
+                if task.status in {TaskStatus.PENDING, TaskStatus.PAUSED}
+            ]
+            if not ordered_pending:
+                return None
+            next_task = ordered_pending[0]
+            if next_task.status == TaskStatus.PAUSED:
+                return self.resume_task(next_task.id, now=now)
+            return self.start_task(next_task.id, now=now)
 
         siblings = self.list_subtasks(expired_task.parent_task_id)
         ordered_pending = [

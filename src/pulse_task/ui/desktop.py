@@ -23,6 +23,75 @@ class UndoAction:
     task: Task
 
 
+def should_minimize_to_tray(
+    tray_controller: object | None,
+    allow_close: bool,
+    close_to_tray: bool,
+) -> bool:
+    return tray_controller is not None and not allow_close and close_to_tray
+
+
+def should_open_expired_dialog(open_dialog_ids: set[str], task_id: str) -> bool:
+    return task_id not in open_dialog_ids
+
+
+def restore_window_from_tray(window: object) -> None:
+    if hasattr(window, "set_visible"):
+        window.set_visible(True)
+    if hasattr(window, "show"):
+        window.show()
+    if hasattr(window, "present"):
+        window.present()
+
+
+def minimize_window_to_tray(window: object) -> None:
+    if hasattr(window, "set_visible"):
+        window.set_visible(False)
+    if hasattr(window, "hide"):
+        window.hide()
+
+
+def make_icon_button(Gtk, icon_name: str, tooltip_text: str):
+    button = Gtk.Button()
+    button.add_css_class("flat")
+    button.set_tooltip_text(tooltip_text)
+    button.set_child(Gtk.Image.new_from_icon_name(icon_name))
+    return button
+
+
+def keyboard_shortcut_action(ctrl: bool, shift: bool, key_name: str) -> str | None:
+    normalized = key_name.lower()
+    if ctrl and normalized == "n":
+        return "new_task"
+    if ctrl and normalized == "z":
+        return "undo"
+    if ctrl and normalized in {"comma", ","}:
+        return "settings"
+    if ctrl and shift and normalized == "a":
+        return "toggle_archived"
+    if normalized == "space":
+        return "toggle_active"
+    return None
+
+
+def keyboard_shortcut_items() -> list[tuple[str, str]]:
+    return [
+        ("Ctrl+N", "Create a new task"),
+        ("Ctrl+Z", "Undo the last archive or delete action"),
+        ("Ctrl+,", "Open Settings"),
+        ("Ctrl+Shift+A", "Toggle archived tasks"),
+        ("Space", "Start, pause, or resume the active task"),
+    ]
+
+
+def keyboard_shortcut_tooltip() -> str:
+    lines = ["Keyboard shortcuts:"]
+    lines.extend(
+        f"{shortcut} - {description}" for shortcut, description in keyboard_shortcut_items()
+    )
+    return "\n".join(lines)
+
+
 def launch_desktop_ui(
     service: TaskService,
     preferences_repo: PreferencesRepository,
@@ -66,6 +135,136 @@ def launch_desktop_ui(
             return f"{hours}h and {rem} min"
         return f"{total_minutes} min"
 
+    def should_show_snooze(task: Task, service: TaskService) -> bool:
+        return task.parent_task_id is None and not service.list_subtasks(task.id)
+
+
+    class SettingsWindow(Adw.ApplicationWindow):
+        def __init__(self, parent_window) -> None:
+            super().__init__(application=app)
+            self.parent_window = parent_window
+            if hasattr(self, "set_transient_for"):
+                self.set_transient_for(parent_window)
+            self.set_title("Settings")
+            self.set_default_size(720, 560)
+
+            root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+            header = Adw.HeaderBar()
+            header.set_title_widget(Gtk.Label(label="Settings"))
+            close_button = Gtk.Button(label="Close")
+            close_button.connect("clicked", lambda *_: self.close())
+            header.pack_end(close_button)
+            root.append(header)
+
+            scroller = Gtk.ScrolledWindow()
+            scroller.set_vexpand(True)
+
+            page = Adw.PreferencesPage()
+
+            general_group = Adw.PreferencesGroup()
+            general_group.set_title("General")
+
+            duration_row = Adw.ActionRow()
+            duration_row.set_title("Default task duration")
+            duration_row.set_subtitle("Used when creating new tasks and subtasks.")
+            duration_spin = Gtk.SpinButton.new_with_range(1, 480, 1)
+            duration_spin.set_value(parent_window.preferences.default_duration_minutes)
+            duration_spin.connect("value-changed", self._on_duration_changed)
+            duration_row.add_suffix(duration_spin)
+            duration_row.set_activatable_widget(duration_spin)
+            self.duration_spin = duration_spin
+            general_group.add(duration_row)
+
+            appearance_group = Adw.PreferencesGroup()
+            appearance_group.set_title("Appearance")
+
+            show_archived_row = Adw.ActionRow()
+            show_archived_row.set_title("Show archived tasks by default")
+            show_archived_row.set_subtitle("Keeps archived tasks visible when the app opens.")
+            show_archived_switch = Gtk.Switch()
+            show_archived_switch.set_active(parent_window.preferences.show_archived_by_default)
+            show_archived_switch.connect("notify::active", self._on_show_archived_changed)
+            show_archived_row.add_suffix(show_archived_switch)
+            show_archived_row.set_activatable_widget(show_archived_switch)
+            self.show_archived_switch = show_archived_switch
+            appearance_group.add(show_archived_row)
+
+            behavior_row = Adw.ActionRow()
+            behavior_row.set_title("Close to tray when available")
+            behavior_row.set_subtitle(
+                "Hides the window instead of exiting if the tray is available."
+            )
+            close_to_tray_switch = Gtk.Switch()
+            close_to_tray_switch.set_active(parent_window.preferences.close_to_tray)
+            close_to_tray_switch.connect("notify::active", self._on_close_to_tray_changed)
+            behavior_row.add_suffix(close_to_tray_switch)
+            behavior_row.set_activatable_widget(close_to_tray_switch)
+            self.close_to_tray_switch = close_to_tray_switch
+            appearance_group.add(behavior_row)
+
+            alerts_group = Adw.PreferencesGroup()
+            alerts_group.set_title("Alerts")
+
+            strong_sound_row = Adw.ActionRow()
+            strong_sound_row.set_title("Use stronger final alert sound")
+            strong_sound_row.set_subtitle("Plays a stronger finish sound for expired tasks.")
+            strong_sound_switch = Gtk.Switch()
+            strong_sound_switch.set_active(parent_window.preferences.strong_final_sound)
+            strong_sound_switch.connect("notify::active", self._on_strong_sound_changed)
+            strong_sound_row.add_suffix(strong_sound_switch)
+            strong_sound_row.set_activatable_widget(strong_sound_switch)
+            self.strong_sound_switch = strong_sound_switch
+            alerts_group.add(strong_sound_row)
+
+            notifications_row = Adw.ActionRow()
+            notifications_row.set_title("Enable desktop notifications")
+            notifications_row.set_subtitle(
+                "Sends system notifications for task start and finish events."
+            )
+            notifications_switch = Gtk.Switch()
+            notifications_switch.set_active(parent_window.preferences.notifications_enabled)
+            notifications_switch.connect("notify::active", self._on_notifications_changed)
+            notifications_row.add_suffix(notifications_switch)
+            notifications_row.set_activatable_widget(notifications_switch)
+            self.notifications_switch = notifications_switch
+            alerts_group.add(notifications_row)
+
+            page.add(general_group)
+            page.add(appearance_group)
+            page.add(alerts_group)
+
+            scroller.set_child(page)
+            root.append(scroller)
+            self.set_content(root)
+
+        def _commit(self) -> None:
+            self.parent_window._apply_preferences(
+                UserPreferences(
+                    default_duration_minutes=self.duration_spin.get_value_as_int(),
+                    show_archived_by_default=self.show_archived_switch.get_active(),
+                    strong_final_sound=self.strong_sound_switch.get_active(),
+                    close_to_tray=self.close_to_tray_switch.get_active(),
+                    notifications_enabled=self.notifications_switch.get_active(),
+                ),
+                announce=False,
+            )
+
+        def _on_duration_changed(self, _spin: Gtk.SpinButton) -> None:
+            self._commit()
+
+        def _on_show_archived_changed(self, _switch: Gtk.Switch, _pspec) -> None:
+            self._commit()
+
+        def _on_close_to_tray_changed(self, _switch: Gtk.Switch, _pspec) -> None:
+            self._commit()
+
+        def _on_strong_sound_changed(self, _switch: Gtk.Switch, _pspec) -> None:
+            self._commit()
+
+        def _on_notifications_changed(self, _switch: Gtk.Switch, _pspec) -> None:
+            self._commit()
+
     class MainWindow(Adw.ApplicationWindow):
         def __init__(self, app: Adw.Application, app_service: TaskService) -> None:
             super().__init__(application=app)
@@ -83,6 +282,8 @@ def launch_desktop_ui(
             self.notice = RuntimeNotice(message="Ready")
             self.last_undo_action: UndoAction | None = None
             self.undo_expires_at = 0.0
+            self._open_expired_dialog_ids: set[str] = set()
+            self.settings_window = None
             self._install_css()
 
             root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -111,6 +312,13 @@ def launch_desktop_ui(
             settings_button.add_css_class("pill")
             settings_button.connect("clicked", self._on_settings_clicked)
 
+            shortcuts_button = make_icon_button(
+                Gtk,
+                "preferences-desktop-accessibility-symbolic",
+                keyboard_shortcut_tooltip(),
+            )
+            shortcuts_button.connect("clicked", self._on_shortcuts_clicked)
+
             undo_button = Gtk.Button(label="Undo")
             undo_button.add_css_class("pill")
             undo_button.set_sensitive(False)
@@ -125,6 +333,7 @@ def launch_desktop_ui(
             controls_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             controls_row.append(archived_button)
             controls_row.append(settings_button)
+            controls_row.append(shortcuts_button)
             controls_row.append(undo_button)
             controls_row.append(new_button)
             root.append(controls_row)
@@ -166,7 +375,8 @@ def launch_desktop_ui(
             return controller
 
         def _open_from_tray(self) -> None:
-            self.present()
+            restore_window_from_tray(self)
+            self._set_notice("PulseTask restored from tray")
 
         def _quit_from_tray(self) -> None:
             self._allow_close = True
@@ -175,20 +385,30 @@ def launch_desktop_ui(
                 app.quit()
 
         def _on_close_request(self, _window) -> bool:
-            if (
-                self.tray_controller is None
-                or self._allow_close
-                or not self.preferences.close_to_tray
+            if not should_minimize_to_tray(
+                self.tray_controller,
+                self._allow_close,
+                self.preferences.close_to_tray,
             ):
                 return False
-            self.hide()
+            minimize_window_to_tray(self)
             self._set_notice("PulseTask minimized to tray")
             return True
 
         def _sync_preferences_to_runtime(self) -> None:
             self.service.set_strong_final_sound(self.preferences.strong_final_sound)
+            self.service.set_notifications_enabled(self.preferences.notifications_enabled)
             state_label = "On" if self.show_archived else "Off"
             self.archived_button.set_label(f"Show archived: {state_label}")
+
+        def _apply_preferences(self, updated: UserPreferences, *, announce: bool = False) -> None:
+            self.preferences = updated.normalized()
+            self.preferences_repo.save(self.preferences)
+            self.show_archived = self.preferences.show_archived_by_default
+            self._sync_preferences_to_runtime()
+            self._refresh_view()
+            if announce:
+                self._set_notice("Settings saved")
 
         def _save_preferences(self) -> None:
             self.preferences.show_archived_by_default = self.show_archived
@@ -271,13 +491,22 @@ def launch_desktop_ui(
             state: Gdk.ModifierType,
         ) -> bool:
             ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
-            if ctrl and keyval in {Gdk.KEY_n, Gdk.KEY_N}:
+            shift = bool(state & Gdk.ModifierType.SHIFT_MASK)
+            key_name = (Gdk.keyval_name(keyval) or "").lower()
+            action = keyboard_shortcut_action(ctrl, shift, key_name)
+            if action == "new_task":
                 self._on_new_task_clicked(Gtk.Button())
                 return True
-            if ctrl and keyval in {Gdk.KEY_z, Gdk.KEY_Z}:
+            if action == "undo":
                 self._on_undo_clicked(Gtk.Button())
                 return True
-            if keyval == Gdk.KEY_space:
+            if action == "settings":
+                self._on_settings_clicked(Gtk.Button())
+                return True
+            if action == "toggle_archived":
+                self._on_toggle_archived_clicked(Gtk.Button())
+                return True
+            if action == "toggle_active":
                 self._toggle_active_task()
                 return True
             return False
@@ -314,6 +543,41 @@ def launch_desktop_ui(
             except Exception as exc:
                 self._set_notice(f"Cannot undo action: {exc}", is_error=True)
             self._refresh_view()
+
+        def _on_shortcuts_clicked(self, _button: Gtk.Button) -> None:
+            dialog = Gtk.Dialog(title="Keyboard shortcuts", transient_for=self, modal=True)
+            dialog.set_default_size(460, 320)
+            dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+
+            area = dialog.get_content_area()
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            box.set_margin_top(20)
+            box.set_margin_bottom(20)
+            box.set_margin_start(20)
+            box.set_margin_end(20)
+
+            intro = Gtk.Label(
+                xalign=0,
+                label="Available shortcuts to keep the app keyboard-first:",
+            )
+            intro.set_wrap(True)
+            box.append(intro)
+
+            for shortcut, description in keyboard_shortcut_items():
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+                shortcut_label = Gtk.Label(xalign=0, label=shortcut)
+                shortcut_label.add_css_class("status-running")
+                shortcut_label.set_width_chars(12)
+                shortcut_label.set_xalign(0)
+                description_label = Gtk.Label(xalign=0, label=description)
+                description_label.set_wrap(True)
+                row.append(shortcut_label)
+                row.append(description_label)
+                box.append(row)
+
+            area.append(box)
+            dialog.connect("response", lambda dialog_widget, *_: dialog_widget.close())
+            dialog.present()
 
         def _toggle_active_task(self) -> None:
             tasks = self._visible_tasks()
@@ -392,7 +656,9 @@ def launch_desktop_ui(
                 changed = self.service.tick()
                 for task in changed:
                     if task.status == TaskStatus.EXPIRED:
-                        self._open_expired_dialog(task)
+                        show_snooze = should_show_snooze(task, self.service)
+                        if should_open_expired_dialog(self._open_expired_dialog_ids, task.id):
+                            self._open_expired_dialog(task, show_snooze=show_snooze)
                 self._refresh_view()
             except Exception as exc:  # pragma: no cover - UI safety
                 self._set_notice(f"Tick error: {exc}", is_error=True)
@@ -513,12 +779,14 @@ def launch_desktop_ui(
             dialog.close()
             self._refresh_view()
 
-        def _open_expired_dialog(self, task: Task) -> None:
+        def _open_expired_dialog(self, task: Task, *, show_snooze: bool = True) -> None:
+            self._open_expired_dialog_ids.add(task.id)
             dialog = Gtk.Dialog(title="Task expired", transient_for=self, modal=True)
             dialog.set_default_size(500, 230)
-            dialog.add_button("Close", Gtk.ResponseType.CLOSE)
-            dialog.add_button("Snooze 1m", 101)
-            dialog.add_button("Snooze 5m", 105)
+            if show_snooze:
+                dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+                dialog.add_button("Snooze 1m", 101)
+                dialog.add_button("Snooze 5m", 105)
 
             area = dialog.get_content_area()
             content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -532,94 +800,62 @@ def launch_desktop_ui(
                 xalign=0,
             )
             title.set_wrap(True)
-            detail = Gtk.Label(
-                label="Choose a snooze interval to restart a short countdown.",
-                xalign=0,
+            detail_text = (
+                "Choose a snooze interval to restart a short countdown."
+                if show_snooze
+                else (
+                    "This task belongs to a block, so snooze is disabled here. "
+                    "This window will close automatically in 4 seconds."
+                )
             )
+            detail = Gtk.Label(label=detail_text, xalign=0)
             detail.set_wrap(True)
             content.append(title)
             content.append(detail)
             area.append(content)
 
-            dialog.connect("response", self._on_expired_response, task.id)
+            dialog.connect("response", self._on_expired_response, task.id, show_snooze)
+            if not show_snooze:
+
+                def _auto_close_dialog() -> bool:
+                    if dialog.get_visible():
+                        dialog.close()
+                    return False
+
+                GLib.timeout_add_seconds(4, _auto_close_dialog)
             dialog.present()
 
-        def _on_expired_response(self, dialog: Gtk.Dialog, response_id: int, task_id: str) -> None:
+        def _on_expired_response(
+            self,
+            dialog: Gtk.Dialog,
+            response_id: int,
+            task_id: str,
+            show_snooze: bool,
+        ) -> None:
             snooze_map = {
                 101: 1,
                 105: 5,
             }
-            if response_id in snooze_map:
+            if show_snooze and response_id in snooze_map:
                 try:
                     minutes = snooze_map[response_id]
                     self.service.snooze_task(task_id, minutes=minutes)
                     self._set_notice(f"Task snoozed for {minutes} minutes")
                 except Exception as exc:
                     self._set_notice(f"Cannot snooze task: {exc}", is_error=True)
+            self._open_expired_dialog_ids.discard(task_id)
             dialog.close()
             self._refresh_view()
 
         def _on_settings_clicked(self, _button: Gtk.Button) -> None:
-            dialog = Gtk.Dialog(title="Settings", transient_for=self, modal=True)
-            dialog.set_default_size(520, 300)
-            dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
-            dialog.add_button("Save", Gtk.ResponseType.OK)
+            if self.settings_window is None:
+                self.settings_window = SettingsWindow(self)
+                self.settings_window.connect("close-request", self._on_settings_window_closed)
+            self.settings_window.present()
 
-            area = dialog.get_content_area()
-            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-            box.set_margin_top(20)
-            box.set_margin_bottom(20)
-            box.set_margin_start(20)
-            box.set_margin_end(20)
-
-            duration_spin = Gtk.SpinButton.new_with_range(1, 480, 1)
-            duration_spin.set_value(self.preferences.default_duration_minutes)
-
-            show_archived_check = Gtk.CheckButton(label="Show archived tasks by default")
-            show_archived_check.set_active(self.preferences.show_archived_by_default)
-
-            strong_sound_check = Gtk.CheckButton(label="Use stronger final alert sound")
-            strong_sound_check.set_active(self.preferences.strong_final_sound)
-
-            close_to_tray_check = Gtk.CheckButton(label="Close to tray when available")
-            close_to_tray_check.set_active(self.preferences.close_to_tray)
-
-            box.append(Gtk.Label(label="Default task duration (minutes)", xalign=0))
-            box.append(duration_spin)
-            box.append(show_archived_check)
-            box.append(strong_sound_check)
-            box.append(close_to_tray_check)
-            area.append(box)
-
-            dialog.connect(
-                "response",
-                self._on_settings_response,
-                duration_spin,
-                show_archived_check,
-                strong_sound_check,
-                close_to_tray_check,
-            )
-            dialog.present()
-
-        def _on_settings_response(
-            self,
-            dialog: Gtk.Dialog,
-            response_id: int,
-            duration_spin: Gtk.SpinButton,
-            show_archived_check: Gtk.CheckButton,
-            strong_sound_check: Gtk.CheckButton,
-            close_to_tray_check: Gtk.CheckButton,
-        ) -> None:
-            if response_id == Gtk.ResponseType.OK:
-                self.preferences.default_duration_minutes = duration_spin.get_value_as_int()
-                self.preferences.show_archived_by_default = show_archived_check.get_active()
-                self.preferences.strong_final_sound = strong_sound_check.get_active()
-                self.preferences.close_to_tray = close_to_tray_check.get_active()
-                self.show_archived = self.preferences.show_archived_by_default
-                self._save_preferences()
-                self._set_notice("Settings saved")
-            dialog.close()
-            self._refresh_view()
+        def _on_settings_window_closed(self, _window) -> bool:
+            self.settings_window = None
+            return False
 
         def _open_edit_task_dialog(self, task: Task) -> None:
             dialog = Gtk.Dialog(title="Edit task", transient_for=self, modal=True)
@@ -757,9 +993,7 @@ def launch_desktop_ui(
                 title.set_markup(f"<b>{task.title}</b>")
             else:
                 order_label = (
-                    f"#{task.sequence_order + 1}"
-                    if task.sequence_order is not None
-                    else "#-"
+                    f"#{task.sequence_order + 1}" if task.sequence_order is not None else "#-"
                 )
                 title.set_markup(f"<b>↳ {order_label} {task.title}</b>")
             top.append(title)
@@ -808,34 +1042,47 @@ def launch_desktop_ui(
             actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             if task.status in {TaskStatus.PENDING, TaskStatus.PAUSED}:
                 start_label = "Start" if task.status == TaskStatus.PENDING else "Resume"
-                start_btn = Gtk.Button(label=start_label)
+                start_icon = (
+                    "media-playback-start-symbolic"
+                    if task.status == TaskStatus.PENDING
+                    else "view-refresh-symbolic"
+                )
+                start_btn = make_icon_button(Gtk, start_icon, start_label)
                 start_btn.connect("clicked", self._on_start_resume_clicked, task.id)
                 actions.append(start_btn)
             elif task.status == TaskStatus.RUNNING:
-                pause_btn = Gtk.Button(label="Pause")
+                pause_btn = make_icon_button(
+                    Gtk,
+                    "media-playback-pause-symbolic",
+                    "Pause",
+                )
                 pause_btn.connect("clicked", self._on_pause_clicked, task.id)
                 actions.append(pause_btn)
 
             if task.status in {TaskStatus.PENDING, TaskStatus.PAUSED, TaskStatus.RUNNING}:
-                complete_btn = Gtk.Button(label="Complete")
+                complete_btn = make_icon_button(Gtk, "object-select-symbolic", "Complete")
                 complete_btn.connect("clicked", self._on_complete_clicked, task.id)
                 actions.append(complete_btn)
 
             if task.status != TaskStatus.ARCHIVED:
-                reset_btn = Gtk.Button(label="Reset")
+                reset_btn = make_icon_button(Gtk, "view-refresh-symbolic", "Reset")
                 reset_btn.connect("clicked", self._on_reset_clicked, task.id)
                 actions.append(reset_btn)
 
-                edit_btn = Gtk.Button(label="Edit")
+                edit_btn = make_icon_button(Gtk, "document-edit-symbolic", "Edit")
                 edit_btn.connect("clicked", self._on_edit_clicked, task.id)
                 actions.append(edit_btn)
 
-                archive_btn = Gtk.Button(label="Archive")
+                archive_btn = make_icon_button(Gtk, "mail-archive-symbolic", "Archive")
                 archive_btn.connect("clicked", self._on_archive_clicked, task.id)
                 actions.append(archive_btn)
 
                 if task.parent_task_id is None:
-                    add_subtask_btn = Gtk.Button(label="Add subtask")
+                    add_subtask_btn = make_icon_button(
+                        Gtk,
+                        "list-add-symbolic",
+                        "Add subtask",
+                    )
                     add_subtask_btn.connect("clicked", self._on_add_subtask_clicked, task.id)
                     actions.append(add_subtask_btn)
 
@@ -843,19 +1090,19 @@ def launch_desktop_ui(
                     start_block_btn.connect("clicked", self._on_start_block_clicked, task.id)
                     actions.append(start_block_btn)
                 else:
-                    up_btn = Gtk.Button(label="Move up")
+                    up_btn = make_icon_button(Gtk, "go-up-symbolic", "Move up")
                     up_btn.connect("clicked", self._on_move_subtask_clicked, task.id, -1)
                     actions.append(up_btn)
 
-                    down_btn = Gtk.Button(label="Move down")
+                    down_btn = make_icon_button(Gtk, "go-down-symbolic", "Move down")
                     down_btn.connect("clicked", self._on_move_subtask_clicked, task.id, 1)
                     actions.append(down_btn)
             else:
-                restore_btn = Gtk.Button(label="Unarchive")
+                restore_btn = make_icon_button(Gtk, "document-revert-symbolic", "Unarchive")
                 restore_btn.connect("clicked", self._on_unarchive_clicked, task.id)
                 actions.append(restore_btn)
 
-            delete_btn = Gtk.Button(label="Delete")
+            delete_btn = make_icon_button(Gtk, "user-trash-symbolic", "Delete")
             delete_btn.connect("clicked", self._on_delete_clicked, task.id)
             actions.append(delete_btn)
 
@@ -929,6 +1176,7 @@ def launch_desktop_ui(
             title_entry = Gtk.Entry(placeholder_text="Subtask title")
             desc_entry = Gtk.Entry(placeholder_text="Description (optional)")
 
+            # Duration input (minutes), matching New Task dialog
             duration_adjustment = Gtk.Adjustment(
                 value=self.preferences.default_duration_minutes,
                 lower=1,
@@ -953,6 +1201,16 @@ def launch_desktop_ui(
                 duration_label,
             )
 
+            minutes_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            minus_btn = Gtk.Button(label="-")
+            plus_btn = Gtk.Button(label="+")
+            minus_btn.connect("clicked", self._on_minutes_minus_clicked, duration_scale)
+            plus_btn.connect("clicked", self._on_minutes_plus_clicked, duration_scale)
+            minutes_row.append(minus_btn)
+            minutes_row.append(duration_scale)
+            minutes_row.append(plus_btn)
+            minutes_row.append(duration_label)
+
             order_spin = Gtk.SpinButton.new_with_range(1, 999, 1)
             order_spin.set_value(self._next_subtask_order(parent_task_id) + 1)
 
@@ -961,8 +1219,7 @@ def launch_desktop_ui(
             box.append(Gtk.Label(label="Description", xalign=0))
             box.append(desc_entry)
             box.append(Gtk.Label(label="Duration (minutes)", xalign=0))
-            box.append(duration_scale)
-            box.append(duration_label)
+            box.append(minutes_row)
             box.append(Gtk.Label(label="Order in block", xalign=0))
             box.append(order_spin)
             area.append(box)

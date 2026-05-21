@@ -17,7 +17,10 @@ def run() -> int:
     preferences = preferences_repo.load()
 
     repository = TaskRepository(data_dir / "tasks.db")
-    alert_manager = AlertManager(audio_backend=AudioBackend(preferences.strong_final_sound))
+    alert_manager = AlertManager(
+        audio_backend=AudioBackend(preferences.strong_final_sound),
+        notifications_enabled=preferences.notifications_enabled,
+    )
     service = TaskService(repository=repository, alert_manager=alert_manager)
     service.recover_running_tasks()
 

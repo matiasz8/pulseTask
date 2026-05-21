@@ -94,11 +94,15 @@ PulseTask aims for a premium, modern interface inspired by recent award-winning 
 	- Allow parent tasks with ordered child tasks
 	- Define execution order inside a block before starting
 	- Auto-notify when a child task ends and auto-start the next one with start notification
-	- Current progress: core model/persistence/service plus desktop UI for add subtask, start block, reorder subtasks, and block progress display
+	- Status: completed (parent + child start orchestration, ordered execution, auto-start next on finish/expire, add subtask with minutes and order, reorder controls, block progress display)
 3. Stabilize tray and desktop behavior across GNOME/Wayland/X11.
+	- Status: completed (close-to-tray minimize/restore flow, tray restore feedback, Wayland/X11-safe visibility handling)
 4. Improve reliability and edge-case handling (suspend/resume, system time jumps, duplicate popups).
+	- Status: completed (time-jump expiration coverage, suspend/resume-safe timer recovery, duplicate expired-dialog guard)
 5. Continue modern UX polish and keyboard-first accessibility.
+	- Status: completed (icon-based task actions, keyboard shortcuts for new task, undo, settings, archived toggle, and active task control)
 6. Build a full settings screen and runtime application of preferences.
+	- Status: completed (dedicated settings window with structured sections and live runtime application of preferences)
 7. Harden Flatpak packaging and release metadata.
 8. Improve open-source collaboration workflows and issue hygiene.
 9. Add local observability metrics.

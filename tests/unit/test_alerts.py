@@ -86,6 +86,23 @@ def test_alert_manager_notifies_task_finished() -> None:
     ]
 
 
+def test_alert_manager_can_disable_notifications() -> None:
+    notify = _FakeNotify()
+    manager = AlertManager(
+        audio_backend=_FakeAudio(),
+        notification_backend=notify,
+        debounce_seconds=0,
+        notifications_enabled=False,
+    )
+
+    manager.notify_task_started("Focus block", remaining_seconds=1500)
+    emitted = manager.alert_task_expired(AlertEvent(task_id="1", title="Deploy"))
+    manager.notify_task_finished("Deep session")
+
+    assert emitted is True
+    assert notify.calls == []
+
+
 def test_countdown_cue_only_for_last_three_seconds_and_without_duplicates() -> None:
     audio = _FakeAudio()
     manager = AlertManager(

@@ -61,3 +61,25 @@ def test_service_tick_triggers_last_three_seconds_cues(tmp_path: Path) -> None:
         service.tick(now=now + timedelta(seconds=sec))
 
     assert audio.cue_calls == 3
+
+
+def test_service_tick_can_disable_notifications(tmp_path: Path) -> None:
+    repo = TaskRepository(tmp_path / "alerts-disabled.db")
+    audio = _FakeAudio()
+    notify = _FakeNotify()
+    alerts = AlertManager(
+        audio_backend=audio,
+        notification_backend=notify,
+        debounce_seconds=0,
+        notifications_enabled=False,
+    )
+    service = TaskService(repository=repo, alert_manager=alerts)
+
+    task = service.create_task("Release", 60)
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    service.start_task(task.id, now=now)
+
+    service.tick(now=now + timedelta(seconds=61))
+
+    assert audio.calls == 1
+    assert notify.calls == []

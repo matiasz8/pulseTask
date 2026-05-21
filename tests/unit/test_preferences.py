@@ -18,6 +18,7 @@ def test_preferences_roundtrip(tmp_path: Path) -> None:
         show_archived_by_default=True,
         strong_final_sound=True,
         close_to_tray=False,
+        notifications_enabled=False,
     )
 
     repo.save(prefs)
@@ -27,6 +28,7 @@ def test_preferences_roundtrip(tmp_path: Path) -> None:
     assert loaded.show_archived_by_default is True
     assert loaded.strong_final_sound is True
     assert loaded.close_to_tray is False
+    assert loaded.notifications_enabled is False
 
 
 def test_preferences_normalizes_out_of_range_minutes(tmp_path: Path) -> None:
@@ -37,3 +39,11 @@ def test_preferences_normalizes_out_of_range_minutes(tmp_path: Path) -> None:
     loaded = repo.load()
 
     assert loaded.default_duration_minutes == 480
+
+
+def test_preferences_default_notifications_enabled(tmp_path: Path) -> None:
+    repo = PreferencesRepository(tmp_path / "preferences.json")
+
+    loaded = repo.load()
+
+    assert loaded.notifications_enabled is True

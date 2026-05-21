@@ -52,6 +52,20 @@ def test_tick_expires_running_task(tmp_path: Path) -> None:
     assert expired.remaining_seconds == 0
 
 
+def test_tick_expires_running_task_after_large_time_jump(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    task = service.create_task("Calendar", 300)
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    service.start_task(task.id, now=now)
+
+    changed = service.tick(now=now + timedelta(hours=6))
+
+    assert len(changed) == 1
+    expired = service.get_task(task.id)
+    assert expired.status == TaskStatus.EXPIRED
+    assert expired.remaining_seconds == 0
+
+
 def test_recover_running_tasks_after_restart(tmp_path: Path) -> None:
     service = _make_service(tmp_path)
     task = service.create_task("Deep work", 120)
@@ -167,7 +181,7 @@ def test_snooze_task_restarts_countdown(tmp_path: Path) -> None:
     assert snoozed.remaining_seconds == 300
 
 
-def test_start_block_starts_first_subtask_by_sequence(tmp_path: Path) -> None:
+def test_start_block_starts_main_task_first(tmp_path: Path) -> None:
     service = _make_service(tmp_path)
     parent = service.create_task("Morning block", 1200)
     child_2 = service.create_subtask(parent.id, "Second", 300, sequence_order=2)
@@ -177,10 +191,48 @@ def test_start_block_starts_first_subtask_by_sequence(tmp_path: Path) -> None:
     now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
     started = service.start_block(parent.id, now=now)
 
-    assert started.id == child_0.id
+    assert started.id == parent.id
     assert started.status == TaskStatus.RUNNING
+    first_after = service.get_task(child_0.id)
+    assert first_after.status == TaskStatus.PENDING
     listed = service.list_subtasks(parent.id)
     assert [task.id for task in listed] == [child_0.id, child_1.id, child_2.id]
+
+
+def test_start_block_running_main_blocks_unrelated_task(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    parent = service.create_task("Morning block", 1200)
+    service.create_subtask(parent.id, "First", 300, sequence_order=0)
+    unrelated = service.create_task("Unrelated", 300)
+
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    service.start_block(parent.id, now=now)
+
+    try:
+        service.start_task(unrelated.id, now=now)
+    except ValueError as exc:
+        assert "Only one running task" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError when starting unrelated running task")
+
+
+def test_expired_main_autostarts_first_subtask(tmp_path: Path) -> None:
+    service = _make_service(tmp_path)
+    parent = service.create_task("Block", 60)
+    first = service.create_subtask(parent.id, "First", 60, sequence_order=0)
+    second = service.create_subtask(parent.id, "Second", 60, sequence_order=1)
+
+    now = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+    service.start_block(parent.id, now=now)
+    changed = service.tick(now=now + timedelta(seconds=61))
+
+    parent_after = service.get_task(parent.id)
+    first_after = service.get_task(first.id)
+    second_after = service.get_task(second.id)
+    assert parent_after.status == TaskStatus.EXPIRED
+    assert first_after.status == TaskStatus.RUNNING
+    assert second_after.status == TaskStatus.PENDING
+    assert any(task.id == first.id and task.status == TaskStatus.RUNNING for task in changed)
 
 
 def test_expired_subtask_autostarts_next_subtask(tmp_path: Path) -> None:

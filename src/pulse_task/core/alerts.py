@@ -21,12 +21,17 @@ class AlertManager:
         audio_backend: AudioBackend | None = None,
         notification_backend: NotificationBackend | None = None,
         debounce_seconds: float = 3.0,
+        notifications_enabled: bool = True,
     ) -> None:
         self.audio_backend = audio_backend or AudioBackend()
         self.notification_backend = notification_backend or NotificationBackend()
         self.debounce_seconds = debounce_seconds
+        self.notifications_enabled = notifications_enabled
         self._last_alert_at = 0.0
         self._countdown_cues: dict[str, int] = {}
+
+    def set_notifications_enabled(self, enabled: bool) -> None:
+        self.notifications_enabled = enabled
 
     def alert_task_expired(self, event: AlertEvent) -> bool:
         now = monotonic()
@@ -34,10 +39,11 @@ class AlertManager:
             return False
 
         self.audio_backend.play_alert()
-        self.notification_backend.send(
-            title="Task expired",
-            body=f"{event.title} has reached its deadline.",
-        )
+        if self.notifications_enabled:
+            self.notification_backend.send(
+                title="Task expired",
+                body=f"{event.title} has reached its deadline.",
+            )
         self._last_alert_at = now
         return True
 
@@ -52,16 +58,18 @@ class AlertManager:
                 remaining = f"{hours}h and {rem} min"
         else:
             remaining = f"{minutes} min"
-        self.notification_backend.send(
-            title="Task started",
-            body=f"{title} - {remaining} remaining.",
-        )
+        if self.notifications_enabled:
+            self.notification_backend.send(
+                title="Task started",
+                body=f"{title} - {remaining} remaining.",
+            )
 
     def notify_task_finished(self, title: str) -> None:
-        self.notification_backend.send(
-            title="Task finished",
-            body=f"{title} finished. Starting next task if available.",
-        )
+        if self.notifications_enabled:
+            self.notification_backend.send(
+                title="Task finished",
+                body=f"{title} finished. Starting next task if available.",
+            )
 
     def maybe_play_countdown_cue(self, task_id: str, remaining_seconds: int) -> bool:
         if remaining_seconds < 1 or remaining_seconds > 3:
