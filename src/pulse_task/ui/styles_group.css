@@ -1,0 +1,92 @@
+/* Group Execution Styling */
+
+.group-window {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+}
+
+/* Timer Display */
+.timer-display {
+    color: #1d9ef6;
+    margin: 24px;
+    font-weight: bold;
+}
+
+/* Task Queue */
+.task-queue {
+    background-color: @theme_bg_color;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.task-row {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    color: @theme_fg_color;
+}
+
+.task-row-current {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    background-color: #1d9ef6;
+    color: white;
+    font-weight: bold;
+}
+
+.task-status {
+    min-width: 16px;
+    color: #aaaaaa;
+}
+
+.task-progress {
+    min-height: 4px;
+    background-color: @theme_bg_color;
+    border-radius: 2px;
+}
+
+/* Stats Footer */
+.stats-footer {
+    border-top: 1px solid @borders;
+    padding-top: 12px;
+    font-size: 11pt;
+    color: #aaaaaa;
+}
+
+/* Overlay */
+.group-overlay {
+    background-color: rgba(10, 20, 25, 0.95);
+    border: 1px solid rgba(29, 158, 246, 0.3);
+    border-radius: 8px;
+    color: white;
+}
+
+.overlay-timer {
+    color: #1d9ef6;
+    font-weight: bold;
+}
+
+.overlay-task {
+    font-size: 11pt;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Transitions */
+.timer-display,
+.task-row,
+.overlay-timer {
+    transition: all 200ms ease-out;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .group-window {
+        margin: 0;
+    }
+
+    .timer-display {
+        margin: 12px;
+        font-size: 36pt;
+    }
+}
