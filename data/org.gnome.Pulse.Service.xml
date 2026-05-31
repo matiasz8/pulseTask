@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <!-- org.gnome.Pulse.Service: Main service interface for group execution control -->
+  <interface name="org.gnome.Pulse.Service">
+    <!-- Properties -->
+    <property name="Status" type="s" access="read">
+      <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/>
+      <doc>Current group execution status: IDLE, EXECUTING, PAUSED, COMPLETED</doc>
+    </property>
+    <property name="IsExecuting" type="b" access="read">
+      <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/>
+      <doc>True if a group is currently executing</doc>
+    </property>
+    <property name="CurrentTaskName" type="s" access="read">
+      <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/>
+      <doc>Name of current task, empty string if no active group</doc>
+    </property>
+    <property name="TimeRemaining" type="i" access="read">
+      <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/>
+      <doc>Seconds remaining for current task, 0 if no active group</doc>
+    </property>
+    <property name="GroupName" type="s" access="read">
+      <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/>
+      <doc>Name of currently executing group</doc>
+    </property>
+
+    <!-- Methods -->
+    <method name="SetPaused">
+      <arg type="b" direction="in" name="paused"/>
+      <doc>Pause (true) or resume (false) the current group execution</doc>
+    </method>
+    <method name="SkipCurrentTask">
+      <doc>Skip current task and advance to next in group</doc>
+    </method>
+    <method name="StopExecution">
+      <doc>Stop group execution and archive session</doc>
+    </method>
+    <method name="StartGroup">
+      <arg type="s" direction="in" name="group_id"/>
+      <doc>Start execution of specified group</doc>
+    </method>
+
+    <!-- Signals -->
+    <signal name="StatusChanged">
+      <arg type="s" name="status"/>
+      <doc>Emitted when group status changes (IDLE → EXECUTING, etc.)</doc>
+    </signal>
+    <signal name="TimeUpdated">
+      <arg type="i" name="seconds_remaining"/>
+      <doc>Emitted when time updates (typically every second during execution)</doc>
+    </signal>
+    <signal name="TaskChanged">
+      <arg type="s" name="task_name"/>
+      <doc>Emitted when current task changes due to advancement/skip</doc>
+    </signal>
+    <signal name="ExecutionStopped">
+      <arg type="a{sv}" name="stats"/>
+      <doc>Emitted when group execution completes with final statistics</doc>
+    </signal>
+  </interface>
+
+  <!-- org.freedesktop.DBus.Introspectable: Standard D-Bus introspection -->
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <method name="Introspect">
+      <arg type="s" direction="out" name="xml_data"/>
+    </method>
+  </interface>
+
+  <!-- org.freedesktop.DBus.Properties: Standard D-Bus property access -->
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get">
+      <arg type="s" direction="in" name="interface_name"/>
+      <arg type="s" direction="in" name="property_name"/>
+      <arg type="v" direction="out" name="value"/>
+    </method>
+    <method name="GetAll">
+      <arg type="s" direction="in" name="interface_name"/>
+      <arg type="a{sv}" direction="out" name="properties"/>
+    </method>
+    <method name="Set">
+      <arg type="s" direction="in" name="interface_name"/>
+      <arg type="s" direction="in" name="property_name"/>
+      <arg type="v" direction="in" name="value"/>
+    </method>
+    <signal name="PropertiesChanged">
+      <arg type="s" name="interface_name"/>
+      <arg type="a{sv}" name="changed_properties"/>
+      <arg type="as" name="invalidated_properties"/>
+    </signal>
+  </interface>
+</node>

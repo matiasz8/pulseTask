@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <!-- org.gnome.Pulse: Main application settings -->
+  <schema id="org.gnome.Pulse" path="/org/gnome/Pulse/" gettext-domain="pulsetask">
+    <!-- UI Preferences -->
+    <key type="b" name="show-overlay">
+      <default>false</default>
+      <summary>Show compact overlay window</summary>
+      <description>When true, show the compact floating timer overlay instead of full window</description>
+    </key>
+
+    <key type="i" name="overlay-opacity">
+      <default>70</default>
+      <range min="0" max="100"/>
+      <summary>Overlay window opacity</summary>
+      <description>Opacity of compact overlay window (0-100%)</description>
+    </key>
+
+    <key type="b" name="show-focus-mode">
+      <default>false</default>
+      <summary>Enable focus mode</summary>
+      <description>When true, disable all notifications and interruptions</description>
+    </key>
+
+    <!-- Data Preferences -->
+    <key type="s" name="last-group-id">
+      <default>''</default>
+      <summary>Last active group ID</summary>
+      <description>ID of last executed group for quick resume</description>
+    </key>
+
+    <key type="s" name="default-time-budget">
+      <default>'3600'</default>
+      <summary>Default time budget for new groups</summary>
+      <description>Default time budget in seconds (3600 = 1 hour)</description>
+    </key>
+
+    <!-- Notification Preferences -->
+    <key type="b" name="notify-on-task-complete">
+      <default>true</default>
+      <summary>Notify on task completion</summary>
+      <description>Show notifications when each task completes</description>
+    </key>
+
+    <key type="b" name="notify-on-time-alert">
+      <default>true</default>
+      <summary>Notify on time alerts</summary>
+      <description>Show notifications when time budget nearing (e.g., 5 min remaining)</description>
+    </key>
+
+    <key type="b" name="notify-on-time-exceeded">
+      <default>true</default>
+      <summary>Notify when time exceeded</summary>
+      <description>Show notifications when task exceeds time budget</description>
+    </key>
+
+    <key type="i" name="time-alert-threshold">
+      <default>300</default>
+      <range min="60" max="3600"/>
+      <summary>Time alert threshold</summary>
+      <description>Show alert when this many seconds remain (300 = 5 min)</description>
+    </key>
+
+    <!-- Keyboard Shortcuts (for FASE 3.4) -->
+    <key type="s" name="shortcut-pause">
+      <default>'&lt;Primary&gt;&lt;Alt&gt;t p'</default>
+      <summary>Shortcut: Pause/Resume</summary>
+      <description>Global keyboard shortcut to pause/resume active group</description>
+    </key>
+
+    <key type="s" name="shortcut-skip">
+      <default>'&lt;Primary&gt;&lt;Alt&gt;t s'</default>
+      <summary>Shortcut: Skip Task</summary>
+      <description>Global keyboard shortcut to skip current task</description>
+    </key>
+
+    <key type="s" name="shortcut-overlay">
+      <default>'&lt;Primary&gt;&lt;Alt&gt;t o'</default>
+      <summary>Shortcut: Toggle Overlay</summary>
+      <description>Global keyboard shortcut to show/hide overlay window</description>
+    </key>
+
+    <!-- Statistics -->
+    <key type="b" name="collect-statistics">
+      <default>true</default>
+      <summary>Collect execution statistics</summary>
+      <description>Collect and store execution metrics for analytics</description>
+    </key>
+
+    <key type="s" name="stats-retention">
+      <default>'90d'</default>
+      <summary>Statistics retention period</summary>
+      <description>How long to keep statistics (e.g., '30d', '1y')</description>
+    </key>
+
+    <!-- Accessibility (FASE 1.3) -->
+    <key type="b" name="high-contrast-mode">
+      <default>false</default>
+      <summary>Force high contrast colors</summary>
+      <description>Override system theme with high-contrast colors</description>
+    </key>
+
+    <key type="b" name="reduce-animation">
+      <default>false</default>
+      <summary>Reduce animations</summary>
+      <description>Disable animations for reduced motion preference</description>
+    </key>
+
+    <key type="b" name="screen-reader-mode">
+      <default>false</default>
+      <summary>Optimize for screen readers</summary>
+      <description>Enhance audio cues and accessibility announcements</description>
+    </key>
+
+    <!-- Database -->
+    <key type="s" name="database-path">
+      <default>'~/.local/share/pulseTask/data.db'</default>
+      <summary>Database file path</summary>
+      <description>Location of SQLite database file</description>
+    </key>
+
+    <key type="b" name="auto-backup">
+      <default>true</default>
+      <summary>Enable automatic backups</summary>
+      <description>Automatically backup database daily</description>
+    </key>
+  </schema>
+</schemalist>
