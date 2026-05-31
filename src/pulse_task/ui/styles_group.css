@@ -90,3 +90,62 @@
         font-size: 36pt;
     }
 }
+
+/* Stats Window Styling */
+
+.stats-window {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+}
+
+.stats-section {
+    background-color: @theme_bg_color;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid @borders;
+}
+
+.stats-label {
+    font-size: 11pt;
+    color: #999999;
+    font-weight: 500;
+    min-width: 150px;
+}
+
+.stats-value {
+    font-size: 13pt;
+    color: @theme_fg_color;
+    font-weight: bold;
+    font-family: "JetBrains Mono";
+}
+
+.stats-small {
+    font-size: 9pt;
+    color: #999999;
+}
+
+/* Heatmap blocks */
+.heatmap-block {
+    border-radius: 4px;
+    border: 1px solid @borders;
+}
+
+.heatmap-0 {
+    background-color: #f0f0f0;
+}
+
+.heatmap-1 {
+    background-color: #a8d8ea;
+}
+
+.heatmap-2 {
+    background-color: #4a9fd8;
+}
+
+.heatmap-3 {
+    background-color: #1d5a96;
+}
+
+.heatmap-4 {
+    background-color: #0d3d6f;
+}
