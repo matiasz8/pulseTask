@@ -22,9 +22,96 @@ def _from_iso(value: str | None) -> datetime | None:
     return parsed
 
 
+class Database:
+    """Database abstraction for TaskRepository and GroupService."""
+
+    def __init__(self, db_path: str | Path) -> None:
+        self.db_path = str(db_path)
+        self._connection: sqlite3.Connection | None = None
+        if db_path == ":memory:":
+            # Keep in-memory database persistent
+            self._connection = sqlite3.connect(":memory:", check_same_thread=False)
+            self._connection.row_factory = sqlite3.Row
+            self._init_schema(self._connection)
+        else:
+            self._init_db()
+
+    def fetch_one(self, query: str, params: tuple = ()) -> tuple | None:
+        """Fetch single row from database."""
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            row = cursor.fetchone()
+            return tuple(row) if row else None
+
+    def fetch_all(self, query: str, params: tuple = ()) -> list[tuple]:
+        """Fetch all rows from database."""
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            rows = cursor.fetchall()
+            return [tuple(row) for row in rows]
+
+    def execute(self, query: str, params: tuple = ()) -> None:
+        """Execute query with no return value."""
+        with self._connect() as conn:
+            conn.execute(query, params)
+
+    def _init_db(self) -> None:
+        """Initialize database schema."""
+        with self._connect() as conn:
+            self._init_schema(conn)
+
+    @staticmethod
+    def _init_schema(conn: sqlite3.Connection) -> None:
+        """Create database schema."""
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS task_groups (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                status TEXT NOT NULL DEFAULT 'idle',
+                task_ids TEXT NOT NULL,
+                total_time_seconds INTEGER NOT NULL DEFAULT 3600,
+                elapsed_time_seconds INTEGER NOT NULL DEFAULT 0,
+                paused_time_seconds INTEGER NOT NULL DEFAULT 0,
+                current_task_index INTEGER NOT NULL DEFAULT 0,
+                tasks_completed INTEGER NOT NULL DEFAULT 0,
+                tasks_skipped INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                started_at TEXT,
+                completed_at TEXT,
+                archived_at TEXT,
+                paused_at TEXT
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_groups_status ON task_groups(status)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_groups_created_at ON task_groups(created_at)")
+
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """Context manager for database connections."""
+        if self._connection is not None:
+            # Use persistent in-memory connection
+            yield self._connection
+        else:
+            # Create new connection for file-based databases
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL;")
+            try:
+                yield conn
+                conn.commit()
+            finally:
+                conn.close()
+
+
 class TaskRepository:
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = str(db_path)
+        self.database = Database(db_path)
         self._ensure_parent_dir()
         self._init_db()
 
@@ -73,6 +160,37 @@ class TaskRepository:
                 conn.execute("ALTER TABLE tasks ADD COLUMN parent_task_id TEXT")
             if "sequence_order" not in columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN sequence_order INTEGER")
+
+            # Create task_groups table
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS task_groups (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    status TEXT NOT NULL DEFAULT 'idle',
+                    task_ids TEXT NOT NULL,
+                    total_time_seconds INTEGER NOT NULL DEFAULT 3600,
+                    elapsed_time_seconds INTEGER NOT NULL DEFAULT 0,
+                    paused_time_seconds INTEGER NOT NULL DEFAULT 0,
+                    current_task_index INTEGER NOT NULL DEFAULT 0,
+                    tasks_completed INTEGER NOT NULL DEFAULT 0,
+                    tasks_skipped INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    started_at TEXT,
+                    completed_at TEXT,
+                    archived_at TEXT,
+                    paused_at TEXT
+                )
+                """
+            )
+            # Create indexes for groups
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_groups_status ON task_groups(status)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_groups_created_at ON task_groups(created_at)"
+            )
 
     def upsert(self, task: Task) -> None:
         with self._connect() as conn:

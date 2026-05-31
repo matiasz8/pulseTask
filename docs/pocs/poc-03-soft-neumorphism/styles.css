@@ -1,0 +1,381 @@
+/* PulseTask POC-03: NEUMORPHISM + SOFT */
+/* Philosophy: Soft UI, ergonomic, genuine calm execution */
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+window {
+  background: #f3e8ff;
+  color: #3f3f46;
+  font-family: "InterVariable", "Inter", sans-serif;
+}
+
+window.dark-style {
+  background: #2e1065;
+  color: #f4f4f5;
+}
+
+/* ============================================
+   TIMER CARD (HERO)
+   ============================================ */
+
+.timer-card {
+  background: #f3e8ff;
+  border-radius: 20px;
+  padding: 32px;
+  margin: 24px;
+  box-shadow: 
+    inset 2px 2px 5px rgba(0, 0, 0, 0.05),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.8),
+    2px 2px 10px rgba(0, 0, 0, 0.1),
+    -2px -2px 10px rgba(255, 255, 255, 0.8);
+  transition: box-shadow 0.3s ease;
+}
+
+.timer-card:dark-style {
+  background: #2e1065;
+  box-shadow:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.3),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.1),
+    2px 2px 10px rgba(0, 0, 0, 0.3),
+    -2px -2px 10px rgba(255, 255, 255, 0.05);
+}
+
+.timer-card:hover {
+  box-shadow: 
+    inset 1px 1px 3px rgba(0, 0, 0, 0.05),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.9),
+    3px 3px 12px rgba(0, 0, 0, 0.12),
+    -3px -3px 12px rgba(255, 255, 255, 0.9);
+}
+
+/* ============================================
+   TIMER LABEL
+   ============================================ */
+
+.timer-label {
+  color: #7c3aed;
+  font-size: 56px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  font-family: "InterVariable", sans-serif;
+  text-align: center;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.timer-label:dark-style {
+  color: #c4b5fd;
+}
+
+/* ============================================
+   TASK CARDS
+   ============================================ */
+
+.task-card {
+  background: #f3e8ff;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.03),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.7),
+    1px 1px 6px rgba(0, 0, 0, 0.08),
+    -1px -1px 6px rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+}
+
+.task-card:hover {
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.04),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.8),
+    2px 2px 8px rgba(0, 0, 0, 0.1),
+    -2px -2px 8px rgba(255, 255, 255, 0.8);
+}
+
+.task-card:dark-style {
+  background: #3f306b;
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.2),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.05),
+    1px 1px 6px rgba(0, 0, 0, 0.2),
+    -1px -1px 6px rgba(255, 255, 255, 0.03);
+}
+
+.task-card.active {
+  background: #f3e8ff;
+  box-shadow:
+    inset 2px 2px 4px rgba(124, 58, 237, 0.1),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.8),
+    2px 2px 10px rgba(124, 58, 237, 0.15),
+    -2px -2px 10px rgba(255, 255, 255, 0.8);
+  border: 2px solid #d8b4fe;
+}
+
+.task-card.active:dark-style {
+  background: #4c1d95;
+  border-color: #a78bfa;
+  box-shadow:
+    inset 2px 2px 4px rgba(124, 58, 237, 0.2),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.05),
+    2px 2px 10px rgba(124, 58, 237, 0.2),
+    -2px -2px 10px rgba(255, 255, 255, 0.03);
+}
+
+.task-card.completed {
+  opacity: 0.6;
+}
+
+/* ============================================
+   PROGRESS INDICATOR
+   ============================================ */
+
+.progress-soft {
+  height: 8px;
+  background: #e9d5ff;
+  border-radius: 4px;
+  margin-top: 12px;
+  overflow: hidden;
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.05),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.6);
+}
+
+.progress-soft:dark-style {
+  background: #581c87;
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.2),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.03);
+}
+
+.progress-soft-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+  border-radius: 4px;
+  animation: progress-gentle 0.4s ease-out;
+}
+
+.progress-soft-fill:dark-style {
+  background: linear-gradient(90deg, #a78bfa, #c4b5fd);
+}
+
+@keyframes progress-gentle {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+/* ============================================
+   LABELS & TEXT
+   ============================================ */
+
+label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #7c3aed;
+  margin-bottom: 8px;
+  display: block;
+  letter-spacing: 0.3px;
+}
+
+label:dark-style {
+  color: #d8b4fe;
+}
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.status-badge.active {
+  background: #ddd6fe;
+  color: #7c3aed;
+}
+
+.status-badge.active:dark-style {
+  background: #7c3aed;
+  color: #f3e8ff;
+}
+
+.status-badge.pending {
+  background: #e9d5ff;
+  color: #a78bfa;
+}
+
+.status-badge.pending:dark-style {
+  background: #6b21a8;
+  color: #d8b4fe;
+}
+
+.status-badge.completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-badge.completed:dark-style {
+  background: #064e3b;
+  color: #86efac;
+}
+
+/* ============================================
+   BUTTONS (Soft 3D)
+   ============================================ */
+
+button {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin: 8px 4px;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.05),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.8),
+    2px 2px 8px rgba(0, 0, 0, 0.1),
+    -2px -2px 8px rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  color: #8b5cf6;
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.04),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.9),
+    3px 3px 10px rgba(0, 0, 0, 0.12),
+    -3px -3px 10px rgba(255, 255, 255, 0.9);
+}
+
+button:active {
+  box-shadow:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.1),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.6);
+}
+
+button:dark-style {
+  background: #3f306b;
+  color: #d8b4fe;
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.2),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.05),
+    2px 2px 8px rgba(0, 0, 0, 0.2),
+    -2px -2px 8px rgba(255, 255, 255, 0.03);
+}
+
+button:hover:dark-style {
+  color: #f3e8ff;
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.1),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.08),
+    3px 3px 10px rgba(0, 0, 0, 0.3),
+    -3px -3px 10px rgba(255, 255, 255, 0.05);
+}
+
+button.secondary {
+  background: #e9d5ff;
+  color: #6b21a8;
+}
+
+button.secondary:dark-style {
+  background: #6b21a8;
+  color: #d8b4fe;
+}
+
+button.success {
+  background: #d1fae5;
+  color: #059669;
+}
+
+button.success:hover {
+  color: #047857;
+}
+
+button.success:dark-style {
+  background: #064e3b;
+  color: #86efac;
+}
+
+button.destructive {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+button.destructive:hover {
+  color: #b91c1c;
+}
+
+button.destructive:dark-style {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+/* ============================================
+   SEPARATORS
+   ============================================ */
+
+separator {
+  background: linear-gradient(90deg, 
+    rgba(124, 58, 237, 0),
+    rgba(124, 58, 237, 0.1),
+    rgba(124, 58, 237, 0)
+  );
+  min-height: 1px;
+  margin: 16px 0;
+}
+
+separator:dark-style {
+  background: linear-gradient(90deg,
+    rgba(216, 180, 254, 0),
+    rgba(216, 180, 254, 0.1),
+    rgba(216, 180, 254, 0)
+  );
+}
+
+/* ============================================
+   OVERALL LAYOUT
+   ============================================ */
+
+box.main-container {
+  padding: 20px;
+  spacing: 16px;
+}
+
+box.controls {
+  spacing: 12px;
+  margin-top: 20px;
+}
+
+scrolledwindow {
+  min-height: 250px;
+}
+
+/* ============================================
+   ANIMATIONS (Gentle)
+   ============================================ */
+
+@keyframes gentle-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 2px 2px 5px rgba(0, 0, 0, 0.05),
+      inset -2px -2px 5px rgba(255, 255, 255, 0.8),
+      2px 2px 10px rgba(0, 0, 0, 0.1),
+      -2px -2px 10px rgba(255, 255, 255, 0.8);
+  }
+  50% {
+    box-shadow:
+      inset 1px 1px 3px rgba(0, 0, 0, 0.05),
+      inset -2px -2px 5px rgba(255, 255, 255, 0.9),
+      3px 3px 12px rgba(0, 0, 0, 0.12),
+      -3px -3px 12px rgba(255, 255, 255, 0.9);
+  }
+}
+
+.timer-active {
+  animation: gentle-pulse 2s ease-in-out infinite;
+}
