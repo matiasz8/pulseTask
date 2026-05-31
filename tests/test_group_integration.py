@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from pulse_task.core.group import GroupStatus, TaskGroup
+from pulse_task.core.group import GroupStatus
 from pulse_task.core.group_service import GroupService
 from pulse_task.core.persistence import Database
 

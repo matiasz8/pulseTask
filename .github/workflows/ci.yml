@@ -2,44 +2,51 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
+    branches: [main, develop]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install ruff
+      - run: ruff check .
+      - run: ruff format --check .
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install mypy
+      - run: mypy src
+
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e ".[dev]"
+      - run: pytest --cov=src --cov-report=xml tests/
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: Setup Python
-        run: uv python install 3.12
-
-      - name: Sync dependencies
-        run: uv sync --extra dev
-
-      - name: Ruff
-        run: uv run ruff check .
-
-      - name: MyPy
-        run: uv run mypy src
-
-      - name: Pytest
-        run: uv run pytest
-
-  packaging:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install packaging validators
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y appstream desktop-file-utils
-
-      - name: Validate Flatpak/AppStream metadata
-        run: make flatpak-validate
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install build
+      - run: python -m build

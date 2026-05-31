@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from typing import cast
 
-from pulse_task.core.group import GroupMember, GroupStatus, TaskGroup
+from pulse_task.core.group import GroupStatus, TaskGroup
 from pulse_task.core.persistence import Database
 
 
@@ -87,7 +88,10 @@ class GroupService:
             List of TaskGroup instances
         """
         if status:
-            query = "SELECT * FROM task_groups WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
+            query = (
+                "SELECT * FROM task_groups WHERE status = ? "
+                "ORDER BY created_at DESC LIMIT ? OFFSET ?"
+            )
             rows = self.db.fetch_all(query, (status.value, limit, offset))
         else:
             query = "SELECT * FROM task_groups ORDER BY created_at DESC LIMIT ? OFFSET ?"
@@ -236,8 +240,10 @@ class GroupService:
         if not group:
             raise ValueError(f"Group {group_id} not found")
 
-        # Mark current task as completed if exists (only if not already marked as skipped)
-        if group.current_task_id() and group.tasks_completed + group.tasks_skipped < group.current_task_index + 1:
+        # Mark current task as completed if exists
+        # (only if not already marked as skipped)
+        total_processed = group.tasks_completed + group.tasks_skipped
+        if group.current_task_id() and total_processed < group.current_task_index + 1:
             group.tasks_completed += 1
 
         # Move to next task
@@ -332,23 +338,39 @@ class GroupService:
         )
 
     @staticmethod
-    def _row_to_group(row: tuple) -> TaskGroup:
+    def _row_to_group(row: tuple[object, ...]) -> TaskGroup:
         """Convert database row to TaskGroup instance."""
         return TaskGroup(
-            id=row[0],
-            name=row[1],
-            description=row[2],
-            status=GroupStatus(row[3]),
-            task_ids=json.loads(row[4]),
-            total_time_seconds=row[5],
-            elapsed_time_seconds=row[6],
-            paused_time_seconds=row[7],
-            current_task_index=row[8],
-            tasks_completed=row[9],
-            tasks_skipped=row[10],
-            created_at=datetime.fromisoformat(row[11]),
-            started_at=datetime.fromisoformat(row[12]) if row[12] else None,
-            completed_at=datetime.fromisoformat(row[13]) if row[13] else None,
-            archived_at=datetime.fromisoformat(row[14]) if row[14] else None,
-            paused_at=datetime.fromisoformat(row[15]) if row[15] else None,
+            id=cast(str, row[0]),
+            name=cast(str, row[1]),
+            description=cast(str, row[2]),
+            status=GroupStatus(cast(str, row[3])),
+            task_ids=json.loads(cast(str, row[4])),
+            total_time_seconds=cast(int, row[5]),
+            elapsed_time_seconds=cast(int, row[6]),
+            paused_time_seconds=cast(int, row[7]),
+            current_task_index=cast(int, row[8]),
+            tasks_completed=cast(int, row[9]),
+            tasks_skipped=cast(int, row[10]),
+            created_at=datetime.fromisoformat(cast(str, row[11])),
+            started_at=(
+                datetime.fromisoformat(cast(str, row[12]))
+                if row[12] is not None
+                else None
+            ),
+            completed_at=(
+                datetime.fromisoformat(cast(str, row[13]))
+                if row[13] is not None
+                else None
+            ),
+            archived_at=(
+                datetime.fromisoformat(cast(str, row[14]))
+                if row[14] is not None
+                else None
+            ),
+            paused_at=(
+                datetime.fromisoformat(cast(str, row[15]))
+                if row[15] is not None
+                else None
+            ),
         )

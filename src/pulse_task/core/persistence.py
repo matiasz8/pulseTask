@@ -36,7 +36,9 @@ class Database:
         else:
             self._init_db()
 
-    def fetch_one(self, query: str, params: tuple = ()) -> tuple | None:
+    def fetch_one(
+        self, query: str, params: tuple[object, ...] = ()
+    ) -> tuple[object, ...] | None:
         """Fetch single row from database."""
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row
@@ -44,7 +46,7 @@ class Database:
             row = cursor.fetchone()
             return tuple(row) if row else None
 
-    def fetch_all(self, query: str, params: tuple = ()) -> list[tuple]:
+    def fetch_all(self, query: str, params: tuple[object, ...] = ()) -> list[tuple[object, ...]]:
         """Fetch all rows from database."""
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row
@@ -52,7 +54,7 @@ class Database:
             rows = cursor.fetchall()
             return [tuple(row) for row in rows]
 
-    def execute(self, query: str, params: tuple = ()) -> None:
+    def execute(self, query: str, params: tuple[object, ...] = ()) -> None:
         """Execute query with no return value."""
         with self._connect() as conn:
             conn.execute(query, params)

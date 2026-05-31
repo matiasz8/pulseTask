@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from datetime import datetime
 
 from pulse_task.core.group import GroupStatus, TaskGroup
 from pulse_task.core.group_service import GroupService
@@ -197,7 +196,7 @@ class TestTaskAdvancement:
         self, service: GroupService, sample_group: TaskGroup
     ) -> None:
         """Test advancing through entire group."""
-        for i in range(4):
+        for _i in range(4):
             service.advance_to_next_task(sample_group.id)
         
         group = service.get_group(sample_group.id)
