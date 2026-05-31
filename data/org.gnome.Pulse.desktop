@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=PulseTask
+Comment=A calm execution environment for Linux power users
+Exec=pulsetask
+Icon=org.gnome.Pulse
+Categories=Productivity;Utility;GNOME;
+Keywords=timer;productivity;focus;task;execution;
+StartupNotify=true
+DBusActivatable=true
+X-Desktop-File-Dirs=/usr/share/applications
+Terminal=false

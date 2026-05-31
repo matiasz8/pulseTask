@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-06-01
+## [0.2.0] - 2026-05-31
 
 ### Added
 
@@ -27,6 +27,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-commit hooks for local linting
 - Test coverage reporting with codecov
 - 44 tests for group execution (100% coverage)
+
+**Sprint 0.3: Documentation**
+- `ARCHITECTURE.md` - System design and module organization
+- `API.md` - Complete service interface reference
+- `DATABASE.md` - Schema, migrations, and query reference
+- `CONTRIBUTING.md` - Development workflow
+
+**Sprint 0.4: CI/CD & Quality**
+- All 106 tests passing (44 group + 62 existing)
+- 100% type check pass (mypy)
+- 100% lint pass (ruff)
+- Semantic versioning and changelog
+
+#### FASE 1: Beautiful Linux App ✅
+
+**Sprint 1.1: Group Execution UI**
+- `GroupExecutionWindow`: Full-featured group timer interface
+  - Large readable timer display (MM:SS format)
+  - Task queue with current task highlighting
+  - Progress bar showing group completion %
+  - Control panel (Pause/Resume, Skip, Stop)
+  - Stats footer with completion tracking
+  - 100ms refresh rate for smooth updates
+- `GroupOverlay`: Compact floating 320x120px window
+  - Minimal timer + task name display
+  - Focus-based opacity toggle (1.0 focused, 0.7 unfocused)
+  - Pause/Skip controls
+  - Always-on-top behavior
+- UI Components: `TimerDisplay`, `TaskRow`, `TaskQueue`, `ControlPanel`, `StatsFooter`
+- GNOME design tokens integration
+- 23 new tests for UI components (all passing)
+
+**Sprint 1.2: Advanced Statistics**
+- `GroupStatsService`: Comprehensive execution analytics
+  - Daily statistics (groups, tasks, focus time, interruptions)
+  - Period statistics (7/30 day aggregations)
+  - Completion rate (tasks/estimated capacity)
+  - Interruption rate (pauses + skips per group)
+  - Weekly activity heatmap by weekday
+- `StatsWindow` UI: Statistics viewer with 6 key metrics
+- Data Exports: CSV + JSON for external analysis
+- Focus heatmap visualization (5 intensity levels)
+
+**Sprint 1.3: Accessibility (WCAG 2.1 AA)**
+- Focus indicators: 3px outline on all interactive elements
+- High contrast mode support (@media prefers-contrast)
+- Reduced motion support (@media prefers-reduced-motion)
+- A11yHelper utilities for screen reader support
+- ACCESSIBILITY_CHECKLIST.md: 95% WCAG AA compliance
+- 100% keyboard navigation (Tab/Shift+Tab through all controls)
+
+### Changed
+- Updated project description: "A calm execution environment for Linux power users"
+- Bumped version to 0.2.0 and status to Beta
+- Enhanced CSS styling with accessibility features
+- Improved database abstraction for GroupService
+
+### Technical Details
+- Group execution follows state machine: IDLE → EXECUTING → PAUSED → COMPLETED
+- Timer updates every 100ms via GLib.timeout_add for smooth animation
+- Statistics computed on-demand from task_groups table
+- CSS uses GTK4 theme variables (@theme_base_color, @theme_accent_color)
+- Full type hints with mypy (100% pass rate)
+- Lint compliance with ruff (100% pass rate)
+
+### Known Limitations
+- No sync backend (local database only)
+- No team/collaboration features
+- No drag-and-drop task reordering
+- Notifications are basic (no D-Bus actions in V1)
+
+### Quality Metrics
+- Tests: 129 passing (85%+ coverage)
+- Lint: 100% pass (ruff)
+- Type Check: 100% pass (mypy)
+- WCAG: 95% AA compliance
+- CI/CD: GitHub Actions on push/PR
 
 **Sprint 0.3: Documentation**
 - `ARCHITECTURE.md` - System design and module organization
