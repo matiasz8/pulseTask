@@ -430,37 +430,45 @@ def launch_desktop_ui(
             self._refresh_view()
 
         def _install_css(self) -> None:
-            css = """
-            .task-card {
-                background: alpha(@theme_fg_color, 0.04);
-                border-radius: 12px;
-                border: 1px solid alpha(@theme_fg_color, 0.12);
-                padding: 4px;
-            }
-            .active-label {
-                font-size: 1.05rem;
-            }
-            .status-running {
-                color: #1f7a1f;
-                font-weight: 600;
-            }
-            .status-paused {
-                color: #c06b00;
-                font-weight: 600;
-            }
-            .status-expired {
-                color: #bb1e1e;
-                font-weight: 700;
-            }
-            .status-archived {
-                color: #5c6370;
-            }
-            .pill {
-                border-radius: 999px;
-            }
-            """
             provider = Gtk.CssProvider()
-            provider.load_from_data(css.encode("utf-8"))
+            
+            # Try to load from styles.css file (for POC development)
+            css_path = Path(__file__).parent / "styles.css"
+            if css_path.exists():
+                provider.load_from_path(str(css_path))
+            else:
+                # Fallback: embedded CSS if file doesn't exist
+                css = """
+                .task-card {
+                    background: alpha(@theme_fg_color, 0.04);
+                    border-radius: 12px;
+                    border: 1px solid alpha(@theme_fg_color, 0.12);
+                    padding: 4px;
+                }
+                .active-label {
+                    font-size: 1.05rem;
+                }
+                .status-running {
+                    color: #1f7a1f;
+                    font-weight: 600;
+                }
+                .status-paused {
+                    color: #c06b00;
+                    font-weight: 600;
+                }
+                .status-expired {
+                    color: #bb1e1e;
+                    font-weight: 700;
+                }
+                .status-archived {
+                    color: #5c6370;
+                }
+                .pill {
+                    border-radius: 999px;
+                }
+                """
+                provider.load_from_data(css.encode("utf-8"))
+            
             Gtk.StyleContext.add_provider_for_display(
                 self.get_display(),
                 provider,
