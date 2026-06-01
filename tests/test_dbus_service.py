@@ -77,13 +77,17 @@ class TestDBusServiceTasks:
         """Current task name should be empty when no active group."""
         assert dbus_service.get_current_task_name() == ""
 
-    def test_get_current_task_name_returns_first_task(self, service, dbus_service, group_with_tasks):
+    def test_get_current_task_name_returns_first_task(
+        self, service, dbus_service, group_with_tasks
+    ):
         """Current task name should be first task after starting."""
         service.start_group_execution(group_with_tasks.id)
         dbus_service.current_group_id = group_with_tasks.id
         assert dbus_service.get_current_task_name() == "task_1"
 
-    def test_get_current_task_name_changes_on_advance(self, service, dbus_service, group_with_tasks):
+    def test_get_current_task_name_changes_on_advance(
+        self, service, dbus_service, group_with_tasks
+    ):
         """Current task name should change after advancing."""
         service.start_group_execution(group_with_tasks.id)
         dbus_service.current_group_id = group_with_tasks.id
@@ -96,7 +100,9 @@ class TestDBusServiceTasks:
         """Time remaining should be 0 when no active group."""
         assert dbus_service.get_time_remaining() == 0
 
-    def test_get_time_remaining_returns_positive_value(self, service, dbus_service, group_with_tasks):
+    def test_get_time_remaining_returns_positive_value(
+        self, service, dbus_service, group_with_tasks
+    ):
         """Time remaining should be positive for active group."""
         service.start_group_execution(group_with_tasks.id)
         dbus_service.current_group_id = group_with_tasks.id
@@ -127,7 +133,9 @@ class TestDBusServiceMethods:
         dbus_service.set_paused(False)
         assert dbus_service.get_status() == "executing"
 
-    def test_skip_current_task_advances_to_next(self, service, dbus_service, group_with_tasks):
+    def test_skip_current_task_advances_to_next(
+        self, service, dbus_service, group_with_tasks
+    ):
         """SkipCurrentTask should advance to next task."""
         service.start_group_execution(group_with_tasks.id)
         dbus_service.current_group_id = group_with_tasks.id
@@ -136,7 +144,9 @@ class TestDBusServiceMethods:
         dbus_service.skip_current_task()
         assert dbus_service.get_current_task_name() == "task_2"
 
-    def test_skip_current_task_counts_as_interruption(self, service, dbus_service, group_with_tasks):
+    def test_skip_current_task_counts_as_interruption(
+        self, service, dbus_service, group_with_tasks
+    ):
         """SkipCurrentTask should count as interruption in stats."""
         service.start_group_execution(group_with_tasks.id)
         dbus_service.current_group_id = group_with_tasks.id

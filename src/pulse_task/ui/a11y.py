@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import gi  # noqa: E402
+import gi  # type: ignore[import-untyped]  # noqa: E402
 
 gi.require_version("Gtk", "4.0")  # noqa: E402
 gi.require_version("Atspi", "2.0")  # noqa: E402
 
-from gi.repository import Gtk  # noqa: E402 # type: ignore[import-untyped]
+from gi.repository import Gtk  # type: ignore[import-untyped]  # noqa: E402
 
 
 class A11yHelper:
@@ -20,7 +20,7 @@ class A11yHelper:
             # Set accessible label (for screen readers)
             accessible = Gtk.Accessible.get_default_if_installed()
             if accessible and hasattr(widget, "set_label"):
-                widget.set_label(label)  # type: ignore[union-attr]
+                widget.set_label(label)
         except Exception:
             pass
 
