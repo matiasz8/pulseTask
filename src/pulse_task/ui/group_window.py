@@ -7,6 +7,8 @@ on timer, task progress, and control buttons.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")  # noqa: E402
@@ -16,6 +18,7 @@ from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402 # type: ignore[impor
 
 from pulse_task.core.group import GroupStatus, TaskGroup  # noqa: E402
 from pulse_task.core.group_service import GroupService  # noqa: E402
+from pulse_task.dbus.status import StatusInterface  # noqa: E402
 from pulse_task.ui.settings_window import SettingsWindow  # noqa: E402
 
 
@@ -195,6 +198,7 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         app: Adw.Application,
         group: TaskGroup,
         service: GroupService,
+        status_interface: StatusInterface | None = None,
     ) -> None:
         """Initialize group execution window.
 
@@ -202,17 +206,20 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
             app: Adwaita application instance
             group: TaskGroup to execute
             service: GroupService for managing execution
+            status_interface: Optional status broadcaster for GNOME integrations
         """
         super().__init__(application=app)
         self.group = group
         self.service = service
+        self.status_interface = status_interface
         self.timer_handle: int | None = None
         self.is_paused = False
         self._has_been_active = False
         self.settings_window: SettingsWindow | None = None
-        
+
         # Initialize GSettings for title countdown preference
         from gi.repository import Gio  # type: ignore[import-untyped]
+
         self.settings = Gio.Settings.new("org.gnome.Pulse")
         self.show_time_in_title = self.settings.get_boolean("show-time-in-title")
         self.pause_on_blur = self.settings.get_boolean("pause-on-blur")
@@ -279,6 +286,8 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
             updated = self.service.get_group(group.id)
             assert updated is not None
             self.group = updated
+
+        self._publish_status(force=True)
 
         # Start timer
         self._start_timer()
@@ -363,6 +372,7 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.controls.pause_button.set_label("Resume")
         self.is_paused = True
         self.group = self.service.get_group(self.group.id) or self.group
+        self._publish_status(force=True)
         self.service.notify_focus_lost(self.group.id)
 
     def _setup_keyboard_shortcuts(self) -> None:
@@ -407,55 +417,69 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
 
         def update_timer() -> bool:
             """Update timer display and state."""
-            # Fetch latest group state
             updated_group = self.service.get_group(self.group.id)
             if not updated_group:
                 self._stop_timer()
                 return False
 
             self.group = updated_group
+            if self.group.status == GroupStatus.EXECUTING:
+                self.group = self.service.update_group_elapsed_time(
+                    self.group.id,
+                    self._elapsed_seconds(),
+                )
+                self.is_paused = False
+                self.controls.pause_button.set_label("Pause")
+            elif self.group.status == GroupStatus.PAUSED:
+                self.is_paused = True
+                self.controls.pause_button.set_label("Resume")
 
-            # Update timer display
             remaining = self.group.time_remaining_seconds()
             minutes = remaining // 60
             seconds = remaining % 60
             self.timer_display.set_markup(
-                f'<span font="JetBrains Mono 48" weight="bold">'
-                f"{minutes:02d}:{seconds:02d}</span>"
+                f'<span font="JetBrains Mono 48" weight="bold">{minutes:02d}:{seconds:02d}</span>'
             )
-            
-            # Update window title with countdown if enabled
+
             if self.show_time_in_title:
                 self.set_title(f"{minutes:02d}:{seconds:02d} - {self.group_name}")
 
-            # Update task queue
             current_task = self.group.current_task_id()
             self.task_queue.set_current_task(current_task)
-
-            # Update progress
-            progress = self.group.progress_percent() / 100.0
-            self.task_queue.set_progress(progress)
-
-            # Update stats
+            self.task_queue.set_progress(self.group.progress_percent() / 100.0)
             self.stats.update(
                 self.group.tasks_completed,
                 len(self.group.task_ids),
                 self.group.elapsed_time_seconds,
             )
+            self._publish_status()
 
-            # Check for completion
-            if self.group.status == GroupStatus.COMPLETED:
+            if self.group.status == GroupStatus.COMPLETED or remaining <= 0:
                 self._on_group_completed()
                 return False
 
-            # Check for expiration
-            if remaining <= 0:
-                self._on_group_completed()
-                return False
+            return True
 
-            return True  # Keep timer running
+        update_timer()
+        self.timer_handle = GLib.timeout_add_seconds(1, update_timer)
 
-        self.timer_handle = GLib.timeout_add(100, update_timer)
+    def _elapsed_seconds(self) -> int:
+        """Calculate elapsed execution time excluding paused time."""
+        if self.group.started_at is None:
+            return self.group.elapsed_time_seconds
+
+        total_elapsed = int((datetime.now(UTC) - self.group.started_at).total_seconds())
+        paused_seconds = self.group.paused_time_seconds
+        if self.group.paused_at is not None:
+            paused_seconds += int((datetime.now(UTC) - self.group.paused_at).total_seconds())
+        return max(self.group.elapsed_time_seconds, total_elapsed - paused_seconds)
+
+    def _publish_status(self, *, force: bool = False) -> None:
+        """Broadcast the latest execution state to GNOME integrations."""
+        if self.status_interface is None:
+            return
+        self.status_interface.set_active_group(self.group.id)
+        self.status_interface.refresh(force=force)
 
     def _stop_timer(self) -> None:
         """Stop the timer loop."""
@@ -468,21 +492,27 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         if self.is_paused:
             # Resume
             self.service.resume_group_execution(self.group.id)
+            self.group = self.service.get_group(self.group.id) or self.group
             button.set_label("Pause")
             self._start_timer()
             self.is_paused = False
+            self._publish_status(force=True)
         else:
             # Pause
             self.service.pause_group_execution(self.group.id)
+            self.group = self.service.get_group(self.group.id) or self.group
             self._stop_timer()
             button.set_label("Resume")
             self.is_paused = True
+            self._publish_status(force=True)
 
     def _on_skip_clicked(self, button: Gtk.Button) -> None:
         """Handle skip button click."""
         _ = button  # Unused
         if self.group.status == GroupStatus.EXECUTING:
             self.service.skip_task_in_group(self.group.id)
+            self.group = self.service.get_group(self.group.id) or self.group
+            self._publish_status(force=True)
 
     def _on_stop_clicked(self, button: Gtk.Button) -> None:
         """Handle stop button click."""
@@ -497,6 +527,7 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.controls.skip_button.set_sensitive(False)
         self.controls.stop_button.set_label("Close")
         self.timer_display.set_markup(
-            '<span font="JetBrains Mono 48" weight="bold" '
-            'color="#33d17a">✓</span>'
+            '<span font="JetBrains Mono 48" weight="bold" color="#33d17a">✓</span>'
         )
+        if self.status_interface is not None:
+            self.status_interface.clear_active_group()

@@ -8,5 +8,6 @@ Provides org.gnome.Pulse D-Bus service for system integration:
 """
 
 from .service import DBusService
+from .status import StatusInterface, StatusSnapshot
 
-__all__ = ["DBusService"]
+__all__ = ["DBusService", "StatusInterface", "StatusSnapshot"]

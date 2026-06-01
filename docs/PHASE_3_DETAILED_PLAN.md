@@ -78,16 +78,16 @@ class NotificationManager:
 
 ### 3.2 Quick Settings Widget (Priority: MEDIUM)
 **Duration:** 4-6 hours
-**Status:** Pending
+**Status:** Completed
 
 #### What to Build
 GNOME Quick Settings toggle for pause/resume.
 
 #### Requirements
-- Show current group execution status
-- Toggle pause/resume from Quick Settings
-- Show remaining time
-- Update in real-time
+- [x] Show current group execution status
+- [x] Toggle pause/resume from Quick Settings
+- [x] Show remaining time
+- [x] Update in real-time
 
 #### Implementation
 
@@ -112,9 +112,9 @@ class QuickSettingsWidget:
 - Leverage libadwaita for UI consistency
 
 **Tests:**
-- Unit tests for status updates
-- Integration tests with GroupService
-- Mock D-Bus signal emissions
+- [x] Unit tests for status updates
+- [x] Integration tests with GroupService
+- [x] Mock D-Bus signal emissions
 
 ### 3.3 Global Keyboard Shortcuts (Priority: MEDIUM)
 **Duration:** 2-3 hours
