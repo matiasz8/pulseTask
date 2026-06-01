@@ -103,6 +103,36 @@
       <description>Legacy warning threshold retained for existing settings UI</description>
     </key>
 
+    <key type="b" name="global-shortcuts-enabled">
+      <default>true</default>
+      <summary>Enable global keyboard shortcuts</summary>
+      <description>Register PulseTask shortcuts with GNOME Shell when the desktop session supports global accelerators</description>
+    </key>
+
+    <key type="s" name="shortcut-pause-resume">
+      <default>'&lt;Super&gt;alt+p'</default>
+      <summary>Pause or resume shortcut</summary>
+      <description>Global accelerator used to pause or resume the active PulseTask group</description>
+    </key>
+
+    <key type="s" name="shortcut-new-task">
+      <default>'&lt;Super&gt;alt+n'</default>
+      <summary>New task shortcut</summary>
+      <description>Global accelerator used to open task creation or the task picker in PulseTask</description>
+    </key>
+
+    <key type="s" name="shortcut-show-stats">
+      <default>'&lt;Super&gt;alt+s'</default>
+      <summary>Show statistics shortcut</summary>
+      <description>Global accelerator used to present the PulseTask statistics window</description>
+    </key>
+
+    <key type="s" name="shortcut-bring-window">
+      <default>'&lt;Super&gt;alt+t'</default>
+      <summary>Bring window shortcut</summary>
+      <description>Global accelerator used to bring the PulseTask window to the foreground</description>
+    </key>
+ 
     <!-- Data Preferences -->
     <key type="s" name="last-group-id">
       <default>''</default>

@@ -19,7 +19,9 @@ from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402 # type: ignore[impor
 from pulse_task.core.group import GroupStatus, TaskGroup  # noqa: E402
 from pulse_task.core.group_service import GroupService  # noqa: E402
 from pulse_task.dbus.status import StatusInterface  # noqa: E402
+from pulse_task.system.shortcuts import GlobalShortcuts  # noqa: E402
 from pulse_task.ui.settings_window import SettingsWindow  # noqa: E402
+from pulse_task.ui.stats_window import StatsWindow  # noqa: E402
 
 
 class TimerDisplay(Gtk.Label):
@@ -216,6 +218,7 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.is_paused = False
         self._has_been_active = False
         self.settings_window: SettingsWindow | None = None
+        self.stats_window: StatsWindow | None = None
 
         # Initialize GSettings for title countdown preference
         from gi.repository import Gio  # type: ignore[import-untyped]
@@ -224,11 +227,19 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.show_time_in_title = self.settings.get_boolean("show-time-in-title")
         self.pause_on_blur = self.settings.get_boolean("pause-on-blur")
         self.group_name = group.name
+        self.global_shortcuts = GlobalShortcuts(
+            settings=self.settings,
+            on_pause_resume=self._toggle_pause_resume_shortcut,
+            on_new_task=self._handle_new_task_shortcut,
+            on_show_stats=self._open_stats_window,
+            on_bring_window=self._bring_window_to_foreground,
+        )
 
         # Listen for preference changes
         self.settings.connect("changed::show-time-in-title", self._on_show_time_in_title_changed)
         self.settings.connect("changed::pause-on-blur", self._on_pause_on_blur_changed)
         self.connect("notify::is-active", self._on_window_activity_changed)
+        self.connect("close-request", self._on_close_request)
 
         self._setup_actions()
 
@@ -288,6 +299,7 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
             self.group = updated
 
         self._publish_status(force=True)
+        self.global_shortcuts.register_shortcuts()
 
         # Start timer
         self._start_timer()
@@ -531,3 +543,35 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         )
         if self.status_interface is not None:
             self.status_interface.clear_active_group()
+
+    def _toggle_pause_resume_shortcut(self) -> None:
+        """Toggle the active group from the global shortcut."""
+        self._on_pause_clicked(self.controls.pause_button)
+
+    def _handle_new_task_shortcut(self) -> None:
+        """Bring the execution window forward when task picking is unavailable."""
+        self._bring_window_to_foreground()
+
+    def _open_stats_window(self) -> None:
+        """Present the statistics dashboard for the current group."""
+        if self.stats_window is None:
+            application = self.get_application()
+            if application is None:
+                return
+            self.stats_window = StatsWindow(application, self.service, group_id=self.group.id)
+            self.stats_window.connect("close-request", self._on_stats_window_closed)
+        self.stats_window.present()
+
+    def _on_stats_window_closed(self, _window: StatsWindow) -> bool:
+        """Drop the cached statistics window once it closes."""
+        self.stats_window = None
+        return False
+
+    def _bring_window_to_foreground(self) -> None:
+        """Restore and focus the execution window."""
+        self.present()
+
+    def _on_close_request(self, _window: Gtk.ApplicationWindow) -> bool:
+        """Release global shortcut registrations when the window closes."""
+        self.global_shortcuts.unregister_shortcuts()
+        return False

@@ -23,6 +23,7 @@ REQUIRED_KEYS: tuple[str, ...] = (
     "notifications-enabled",
     "expiration-warnings",
     "warning-threshold",
+    "global-shortcuts-enabled",
 )
 
 
@@ -122,11 +123,16 @@ class SettingsWindow(Adw.PreferencesWindow):
             "Show remaining time in title"
         )
         self.pause_on_blur_row = self._create_switch_row("Pause on window blur")
+        self.global_shortcuts_row = self._create_switch_row("Enable global shortcuts")
+        self.global_shortcuts_row.set_subtitle(
+            "Use GNOME Shell global accelerators when supported by the session"
+        )
 
         behavior_group.add(self.auto_start_row)
         behavior_group.add(self.show_time_in_title_row)
         behavior_group.add(self.pause_on_blur_row)
-
+        behavior_group.add(self.global_shortcuts_row)
+ 
         page.add(behavior_group)
         return page
 
@@ -185,6 +191,12 @@ class SettingsWindow(Adw.PreferencesWindow):
         self.settings.bind(
             "pause-on-blur",
             self.pause_on_blur_row,
+            "active",
+            Gio.SettingsBindFlags.DEFAULT,
+        )
+        self.settings.bind(
+            "global-shortcuts-enabled",
+            self.global_shortcuts_row,
             "active",
             Gio.SettingsBindFlags.DEFAULT,
         )
