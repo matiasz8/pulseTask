@@ -1,0 +1,319 @@
+/* Group Execution Styling */
+
+.group-window {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+}
+
+/* Timer Display */
+.timer-display {
+    color: #1d9ef6;
+    margin: 24px;
+    font-weight: bold;
+}
+
+/* Control Panel */
+.control-panel {
+    background-color: transparent;
+    padding: 16px 0;
+    border-radius: 12px;
+}
+
+.pill-button {
+    border-radius: 24px;
+    padding: 8px 24px;
+    font-weight: 500;
+    font-size: 10pt;
+    min-width: 100px;
+    transition: all 150ms ease-out;
+}
+
+.pill-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(29, 158, 246, 0.2);
+}
+
+.pill-button:active {
+    transform: scale(0.98);
+}
+
+.pill-button:disabled {
+    opacity: 0.5;
+    transform: none;
+}
+
+/* Task Queue */
+.task-queue {
+    background-color: @theme_bg_color;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.task-row {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    color: @theme_fg_color;
+}
+
+.task-row-current {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    background-color: #1d9ef6;
+    color: white;
+    font-weight: bold;
+}
+
+.task-status {
+    min-width: 16px;
+    color: #aaaaaa;
+}
+
+.task-progress {
+    min-height: 4px;
+    background-color: @theme_bg_color;
+    border-radius: 2px;
+}
+
+/* Stats Footer */
+.stats-footer {
+    border-top: 1px solid @borders;
+    padding-top: 12px;
+    font-size: 11pt;
+    color: #aaaaaa;
+}
+
+/* Overlay */
+.group-overlay {
+    background-color: rgba(10, 20, 25, 0.95);
+    border: 1px solid rgba(29, 158, 246, 0.3);
+    border-radius: 8px;
+    color: white;
+}
+
+.overlay-timer {
+    color: #1d9ef6;
+    font-weight: bold;
+}
+
+.overlay-task {
+    font-size: 11pt;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Transitions */
+.timer-display,
+.task-row,
+.overlay-timer {
+    transition: all 200ms ease-out;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .group-window {
+        margin: 0;
+    }
+
+    .timer-display {
+        margin: 12px;
+        font-size: 36pt;
+    }
+}
+
+/* Stats Window Styling */
+
+.stats-window {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+}
+
+.stats-section {
+    background-color: @theme_bg_color;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid @borders;
+}
+
+.stats-label {
+    font-size: 11pt;
+    color: #999999;
+    font-weight: 500;
+    min-width: 150px;
+}
+
+.stats-value {
+    font-size: 13pt;
+    color: @theme_fg_color;
+    font-weight: bold;
+    font-family: "JetBrains Mono";
+}
+
+.stats-small {
+    font-size: 9pt;
+    color: #999999;
+}
+
+/* Heatmap blocks */
+.heatmap-block {
+    border-radius: 4px;
+    border: 1px solid @borders;
+}
+
+.heatmap-0 {
+    background-color: #f0f0f0;
+}
+
+.heatmap-1 {
+    background-color: #a8d8ea;
+}
+
+.heatmap-2 {
+    background-color: #4a9fd8;
+}
+
+.heatmap-3 {
+    background-color: #1d5a96;
+}
+
+.heatmap-4 {
+    background-color: #0d3d6f;
+}
+
+/* Accessibility: Focus Indicators */
+
+button:focus-visible {
+    outline: 3px solid @theme_accent_color;
+    outline-offset: 2px;
+}
+
+button:focus {
+    outline: 3px solid @theme_accent_color;
+    outline-offset: 2px;
+}
+
+entry:focus {
+    box-shadow: 0 0 0 3px rgba(29, 158, 246, 0.3);
+}
+
+/* Ensure focus indicators never removed */
+*:focus {
+    outline-width: 3px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+    .timer-display {
+        font-weight: 900;
+    }
+
+    .task-row-current {
+        border: 2px solid @theme_accent_color;
+    }
+
+    button {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+/* Statistics dashboard styling */
+
+.stats-window {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+}
+
+.stats-card,
+.stats-chart {
+    background: alpha(@theme_fg_color, 0.04);
+    border: 1px solid alpha(@theme_fg_color, 0.12);
+    border-radius: 18px;
+    padding: 18px;
+}
+
+.stats-card {
+    min-width: 280px;
+}
+
+.stats-value {
+    font-size: 22pt;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.stats-label {
+    font-size: 10pt;
+    font-weight: 600;
+    color: alpha(@theme_fg_color, 0.72);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.stats-unit {
+    font-size: 11pt;
+    font-weight: 600;
+    color: alpha(@theme_fg_color, 0.72);
+    margin-top: 10px;
+}
+
+.stats-indicator {
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 9pt;
+    font-weight: 700;
+}
+
+.stats-indicator-green {
+    color: #1e7f43;
+    background: alpha(#1e7f43, 0.12);
+}
+
+.stats-indicator-yellow {
+    color: #a87000;
+    background: alpha(#a87000, 0.14);
+}
+
+.stats-indicator-red {
+    color: #ba1b1b;
+    background: alpha(#ba1b1b, 0.12);
+}
+
+.stats-card.stats-indicator-green {
+    border-color: alpha(#1e7f43, 0.32);
+}
+
+.stats-card.stats-indicator-yellow {
+    border-color: alpha(#a87000, 0.32);
+}
+
+.stats-card.stats-indicator-red {
+    border-color: alpha(#ba1b1b, 0.32);
+}
+
+.stats-trend {
+    font-size: 10pt;
+    font-weight: 600;
+    color: alpha(@theme_fg_color, 0.8);
+}
+
+.levelbar block.filled {
+    background-color: @accent_bg_color;
+}
+
+.levelbar block.empty {
+    background-color: alpha(@theme_fg_color, 0.08);
+}
+
+checkbutton:focus-visible,
+button:focus-visible {
+    outline: 3px solid @accent_bg_color;
+    outline-offset: 2px;
+}
