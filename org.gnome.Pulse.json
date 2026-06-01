@@ -1,0 +1,41 @@
+{
+  "id": "org.gnome.Pulse",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "46",
+  "sdk": "org.gnome.Sdk",
+  "command": "pulsetask",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--device=dri"
+  ],
+  "build-options": {
+    "cflags": "-O2",
+    "cxxflags": "-O2"
+  },
+  "modules": [
+    {
+      "name": "pulsetask",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-index --find-links=. .",
+        "install -d /app/share/applications",
+        "install -m 644 data/org.gnome.Pulse.desktop /app/share/applications/org.gnome.Pulse.desktop",
+        "install -d /app/share/icons/hicolor/scalable/apps",
+        "install -m 644 resources/linux/org.gnome.Pulse.svg /app/share/icons/hicolor/scalable/apps/org.gnome.Pulse.svg",
+        "install -d /app/share/glib-2.0/schemas",
+        "install -m 644 data/org.gnome.Pulse.gschema.xml /app/share/glib-2.0/schemas/",
+        "glib-compile-schemas /app/share/glib-2.0/schemas/"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/matiasz8/pulseTask.git",
+          "tag": "v0.2.0",
+          "commit": "6059c341133ba42fabff8ffddb80730b1864a277"
+        }
+      ]
+    }
+  ]
+}
