@@ -109,6 +109,12 @@
       <description>Register PulseTask shortcuts with GNOME Shell when the desktop session supports global accelerators</description>
     </key>
 
+    <key type="b" name="search-provider-enabled">
+      <default>true</default>
+      <summary>Enable search provider in Activities</summary>
+      <description>Expose PulseTask tasks through GNOME Activities search</description>
+    </key>
+
     <key type="s" name="shortcut-pause-resume">
       <default>'&lt;Super&gt;alt+p'</default>
       <summary>Pause or resume shortcut</summary>

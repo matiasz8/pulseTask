@@ -164,7 +164,7 @@ class GlobalShortcuts:
 
 ### 3.4 Search Provider Integration (Priority: LOW)
 **Duration:** 3-4 hours
-**Status:** Pending
+**Status:** Completed
 
 #### What to Build
 GNOME search integration (Activities search).
@@ -208,6 +208,12 @@ org.gnome.Shell.SearchProvider2
 - Unit tests for search result formatting
 - Integration tests with shell
 - Mock D-Bus search interface
+
+**Delivered in v0.3.0:**
+- Added `SearchProvider` with `org.gnome.Shell.SearchProvider2` D-Bus registration.
+- Search covers active groups plus recent completions with lightweight fuzzy matching.
+- Activities activation now presents the desktop app and pre-fills the in-app search entry.
+- Added provider metadata files and unit coverage for unicode, activation, and empty results.
 
 ### 3.5 D-Bus Service Complete Implementation (Priority: MEDIUM)
 **Duration:** 4-5 hours
@@ -273,7 +279,7 @@ class DBusService:
 - [x] Action buttons work (snooze, extend, dismiss)
 - [ ] Quick Settings widget shows status in real-time
 - [x] Global shortcuts registered and functional
-- [ ] Search provider returns results in Activities
+- [x] Search provider returns results in Activities
 - [ ] D-Bus service fully registered
 - [x] All tests passing (154+ base)
 - [x] 100% lint compliance
@@ -345,4 +351,4 @@ Each component can be independently disabled:
 
 ---
 
-**Next Step:** Continue with 3.4 Search Provider integration after validating shortcuts on GNOME 40+
+**Next Step:** Continue with 3.5 D-Bus full implementation after validating search provider behavior on GNOME 40+

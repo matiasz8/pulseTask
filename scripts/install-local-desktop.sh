@@ -6,11 +6,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ICON_SRC="$ROOT_DIR/src/pulse_task/ui/assets/$APP_ID.svg"
 
 DESKTOP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+SEARCH_PROVIDER_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/gnome-shell/search-providers"
 ICON_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
 BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 LAUNCHER_PATH="$BIN_DIR/$APP_ID"
+SEARCH_PROVIDER_SRC="$ROOT_DIR/data/org.gnome.Pulse-search-provider.desktop"
+SEARCH_PROVIDER_DEST="$SEARCH_PROVIDER_DIR/org.gnome.Pulse-search-provider.desktop"
 
-mkdir -p "$DESKTOP_DIR" "$ICON_DIR" "$BIN_DIR"
+mkdir -p "$DESKTOP_DIR" "$SEARCH_PROVIDER_DIR" "$ICON_DIR" "$BIN_DIR"
 
 cat >"$LAUNCHER_PATH" <<EOF
 #!/usr/bin/env bash
@@ -52,6 +55,8 @@ StartupWMClass=$APP_ID
 EOF
 
 install -m 0644 "$ICON_SRC" "$ICON_DIR/$APP_ID.svg"
+install -m 0644 "$ICON_SRC" "$ICON_DIR/org.gnome.Pulse.svg"
+install -m 0644 "$SEARCH_PROVIDER_SRC" "$SEARCH_PROVIDER_DEST"
 
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DESKTOP_DIR" || true
 command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor" || true

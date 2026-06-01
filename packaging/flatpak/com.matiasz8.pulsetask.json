@@ -9,7 +9,8 @@
     "--socket=fallback-x11",
     "--socket=wayland",
     "--device=dri",
-    "--talk-name=org.freedesktop.Notifications"
+    "--talk-name=org.freedesktop.Notifications",
+    "--own-name=org.gnome.Pulse"
   ],
   "modules": [
     {
@@ -18,7 +19,9 @@
       "build-commands": [
         "pip3 install --no-build-isolation --prefix=/app .",
         "install -Dm644 resources/linux/com.matiasz8.pulsetask.desktop /app/share/applications/com.matiasz8.pulsetask.desktop",
+        "install -Dm644 data/org.gnome.Pulse-search-provider.desktop /app/share/gnome-shell/search-providers/org.gnome.Pulse-search-provider.desktop",
         "install -Dm644 src/pulse_task/ui/assets/com.matiasz8.pulsetask.svg /app/share/icons/hicolor/scalable/apps/com.matiasz8.pulsetask.svg",
+        "install -Dm644 src/pulse_task/ui/assets/com.matiasz8.pulsetask.svg /app/share/icons/hicolor/scalable/apps/org.gnome.Pulse.svg",
         "install -Dm644 resources/linux/com.matiasz8.pulsetask.metainfo.xml /app/share/metainfo/com.matiasz8.pulsetask.metainfo.xml"
       ],
       "sources": [

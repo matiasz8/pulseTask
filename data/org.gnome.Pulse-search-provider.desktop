@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Service
+Name=PulseTask Search Provider
+Icon=org.gnome.Pulse
+DBusActivatable=true
+ServiceName=org.gnome.Pulse
+Search=true
+X-GNOME-Provides=search-provider
+X-GNOME-Search-Provider-Id=com.matiasz8.pulsetask.desktop
+X-GNOME-Search-Provider-Name=PulseTask
+X-GNOME-Search-Provider-Icon=org.gnome.Pulse
+X-GNOME-Search-Provider-ObjectPath=/org/gnome/Pulse/SearchProvider

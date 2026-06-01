@@ -8,6 +8,7 @@ from time import monotonic
 from pulse_task.core.preferences import PreferencesRepository, UserPreferences
 from pulse_task.core.service import TaskService
 from pulse_task.core.task import Task, TaskStatus
+from pulse_task.system.search_provider import SearchProvider
 from pulse_task.system.tray import build_tray_controller
 
 
@@ -96,6 +97,7 @@ def launch_desktop_ui(
     service: TaskService,
     preferences_repo: PreferencesRepository,
     preferences: UserPreferences,
+    search_provider: SearchProvider | None = None,
 ) -> int:
     try:
         import gi
@@ -280,6 +282,7 @@ def launch_desktop_ui(
             self.last_undo_action: UndoAction | None = None
             self.undo_expires_at = 0.0
             self._open_expired_dialog_ids: set[str] = set()
+            self._task_rows: dict[str, Gtk.ListBoxRow] = {}
             self.settings_window = None
             self._install_css()
 
@@ -955,6 +958,7 @@ def launch_desktop_ui(
                     break
                 self.task_list.remove(child)
 
+            self._task_rows = {}
             tasks = self._visible_tasks()
             running = next((task for task in tasks if task.status == TaskStatus.RUNNING), None)
             if running is None:
@@ -967,10 +971,45 @@ def launch_desktop_ui(
                 self.set_title(f"[{format_seconds(running.remaining_seconds)}] PulseTask")
 
             for task in tasks:
-                self.task_list.append(self._build_task_row(task))
+                row = self._build_task_row(task)
+                self._task_rows[task.id] = row
+                self.task_list.append(row)
 
             if self.tray_controller is not None:
                 self.tray_controller.update(tasks)
+
+        def present_search_result(
+            self,
+            task_id: str,
+            group_id: str | None,
+            terms: tuple[str, ...],
+        ) -> None:
+            """Present the window and focus the task resolved from Activities search."""
+            restore_window_from_tray(self)
+            self._refresh_view()
+            try:
+                task = self.service.get_task(task_id)
+                self._set_notice(
+                    f"Opened {task.title} from search"
+                    if group_id is None
+                    else f"Opened {task.title} from {group_id[:8]}"
+                )
+            except ValueError:
+                self._set_notice("The selected search result is no longer available", is_error=True)
+                return
+            row = self._task_rows.get(task_id)
+            if row is not None and hasattr(row, "grab_focus"):
+                row.grab_focus()
+            if terms:
+                self.search_entry.set_text(" ".join(terms))
+
+        def present_search_terms(self, terms: tuple[str, ...]) -> None:
+            """Present the window with the requested search terms filled in."""
+            restore_window_from_tray(self)
+            if terms:
+                self.search_entry.set_text(" ".join(terms))
+                self._set_notice(f"Activities search: {' '.join(terms)}")
+            self.search_entry.grab_focus()
 
         def _build_task_row(self, task: Task) -> Gtk.ListBoxRow:
             row = Gtk.ListBoxRow()
@@ -1348,5 +1387,26 @@ def launch_desktop_ui(
                 self.window = MainWindow(self, self.app_service)
             self.window.present()
 
+        def present_search_result(
+            self,
+            task_id: str,
+            group_id: str | None,
+            terms: tuple[str, ...],
+            _timestamp: int,
+        ) -> None:
+            self.activate()
+            if self.window is not None:
+                self.window.present_search_result(task_id, group_id, terms)
+
+        def present_search_terms(self, terms: tuple[str, ...], _timestamp: int) -> None:
+            self.activate()
+            if self.window is not None:
+                self.window.present_search_terms(terms)
+
     app = PulseTaskApplication(service)
+    if search_provider is not None:
+        search_provider.bind_handlers(
+            on_activate=app.present_search_result,
+            on_launch_search=app.present_search_terms,
+        )
     return int(app.run([]))
