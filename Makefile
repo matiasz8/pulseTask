@@ -1,5 +1,6 @@
 UV ?= uv
 PYTHON ?= 3.12
+export PATH := $(HOME)/.local/bin:$(PATH)
 
 .PHONY: check-uv venv sync doctor-gtk test lint typecheck run ci install-desktop uninstall-desktop flatpak-build flatpak-install flatpak-run flatpak-validate metrics-report
 
