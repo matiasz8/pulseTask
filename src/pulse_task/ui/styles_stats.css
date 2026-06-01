@@ -1,0 +1,93 @@
+/* Statistics dashboard styling */
+
+.stats-window {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+}
+
+.stats-card,
+.stats-chart {
+    background: alpha(@theme_fg_color, 0.04);
+    border: 1px solid alpha(@theme_fg_color, 0.12);
+    border-radius: 18px;
+    padding: 18px;
+}
+
+.stats-card {
+    min-width: 280px;
+}
+
+.stats-value {
+    font-size: 22pt;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.stats-label {
+    font-size: 10pt;
+    font-weight: 600;
+    color: alpha(@theme_fg_color, 0.72);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.stats-unit {
+    font-size: 11pt;
+    font-weight: 600;
+    color: alpha(@theme_fg_color, 0.72);
+    margin-top: 10px;
+}
+
+.stats-indicator {
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 9pt;
+    font-weight: 700;
+}
+
+.stats-indicator-green {
+    color: #1e7f43;
+    background: alpha(#1e7f43, 0.12);
+}
+
+.stats-indicator-yellow {
+    color: #a87000;
+    background: alpha(#a87000, 0.14);
+}
+
+.stats-indicator-red {
+    color: #ba1b1b;
+    background: alpha(#ba1b1b, 0.12);
+}
+
+.stats-card.stats-indicator-green {
+    border-color: alpha(#1e7f43, 0.32);
+}
+
+.stats-card.stats-indicator-yellow {
+    border-color: alpha(#a87000, 0.32);
+}
+
+.stats-card.stats-indicator-red {
+    border-color: alpha(#ba1b1b, 0.32);
+}
+
+.stats-trend {
+    font-size: 10pt;
+    font-weight: 600;
+    color: alpha(@theme_fg_color, 0.8);
+}
+
+.levelbar block.filled {
+    background-color: @accent_bg_color;
+}
+
+.levelbar block.empty {
+    background-color: alpha(@theme_fg_color, 0.08);
+}
+
+checkbutton:focus-visible,
+button:focus-visible {
+    outline: 3px solid @accent_bg_color;
+    outline-offset: 2px;
+}
