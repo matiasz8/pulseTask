@@ -52,10 +52,30 @@
       <description>Pause the active timer when the execution window loses focus</description>
     </key>
 
-    <key type="b" name="notifications-enabled">
+    <key type="b" name="notification-enabled">
       <default>true</default>
       <summary>Enable desktop notifications</summary>
       <description>Show desktop notifications for PulseTask events</description>
+    </key>
+
+    <key type="i" name="notification-timeout">
+      <default>10000</default>
+      <range min="0" max="60000"/>
+      <summary>Desktop notification timeout</summary>
+      <description>Default timeout in milliseconds for PulseTask desktop notifications</description>
+    </key>
+
+    <key type="i" name="expiration-warning-threshold">
+      <default>300</default>
+      <range min="30" max="3600"/>
+      <summary>Expiration warning threshold</summary>
+      <description>How many seconds before expiration to show a warning notification</description>
+    </key>
+
+    <key type="b" name="notifications-enabled">
+      <default>true</default>
+      <summary>Enable desktop notifications (legacy)</summary>
+      <description>Backward-compatible notification toggle retained for existing UI bindings</description>
     </key>
 
     <key type="b" name="expiration-warnings">
@@ -68,7 +88,7 @@
       <default>5</default>
       <range min="1" max="60"/>
       <summary>Warning threshold in minutes</summary>
-      <description>How many minutes before expiration to show a warning notification</description>
+      <description>Legacy warning threshold retained for existing settings UI</description>
     </key>
 
     <!-- Data Preferences -->

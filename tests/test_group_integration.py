@@ -2,11 +2,65 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pytest
 
 from pulse_task.core.group import GroupStatus
 from pulse_task.core.group_service import GroupService
 from pulse_task.core.persistence import Database
+
+
+class FakeNotificationManager:
+    """Test double for GroupService notification integration."""
+
+    def __init__(self, warning_threshold_seconds: int = 300) -> None:
+        self.warning_threshold_seconds = warning_threshold_seconds
+        self.sent: list[tuple[str, str, dict[str, Callable[[], None]]]] = []
+
+    def send_task_expired(
+        self,
+        task_name: str,
+        *,
+        on_snooze: Callable[[], None] | None = None,
+        on_start_next: Callable[[], None] | None = None,
+    ) -> int:
+        self.sent.append(
+            (
+                "expired",
+                task_name,
+                {
+                    "snooze": on_snooze or (lambda: None),
+                    "start-next": on_start_next or (lambda: None),
+                },
+            )
+        )
+        return len(self.sent)
+
+    def send_time_warning(
+        self,
+        task_name: str,
+        seconds_remaining: int,
+        *,
+        on_extend: Callable[[], None] | None = None,
+    ) -> int:
+        self.sent.append(
+            (
+                f"warning:{seconds_remaining}",
+                task_name,
+                {"extend": on_extend or (lambda: None)},
+            )
+        )
+        return len(self.sent)
+
+    def send_focus_lost(
+        self,
+        task_name: str,
+        *,
+        on_resume: Callable[[], None] | None = None,
+    ) -> int:
+        self.sent.append(("focus", task_name, {"resume": on_resume or (lambda: None)}))
+        return len(self.sent)
 
 
 @pytest.fixture
@@ -19,6 +73,21 @@ def db() -> Database:
 def service(db: Database) -> GroupService:
     """Create GroupService with test database."""
     return GroupService(db)
+
+
+@pytest.fixture
+def notification_manager() -> FakeNotificationManager:
+    """Create a fake notification manager."""
+    return FakeNotificationManager()
+
+
+@pytest.fixture
+def notification_service(
+    db: Database,
+    notification_manager: FakeNotificationManager,
+) -> GroupService:
+    """Create GroupService with notification integration enabled."""
+    return GroupService(db, notification_manager=notification_manager)
 
 
 class TestGroupExecutionWorkflow:
@@ -277,3 +346,62 @@ class TestGroupExecutionWorkflow:
         assert updated.name == original_name
         assert updated.task_ids == original_task_ids
         assert updated.total_time_seconds == original_total_time
+
+
+class TestNotificationIntegration:
+    """Tests for GroupService desktop notification hooks."""
+
+    def test_time_warning_emitted_once_and_extend_action_updates_group(
+        self,
+        notification_service: GroupService,
+        notification_manager: FakeNotificationManager,
+    ) -> None:
+        group = notification_service.create_group("Warning", ["draft"], 600)
+        notification_service.start_group_execution(group.id)
+
+        notification_service.update_group_elapsed_time(group.id, 300)
+        notification_service.update_group_elapsed_time(group.id, 301)
+
+        assert [entry[0] for entry in notification_manager.sent] == ["warning:300"]
+        notification_manager.sent[0][2]["extend"]()
+
+        updated = notification_service.get_group(group.id)
+        assert updated.total_time_seconds == 900
+
+    def test_expiration_notification_actions_snooze_and_start_next(
+        self,
+        notification_service: GroupService,
+        notification_manager: FakeNotificationManager,
+    ) -> None:
+        group = notification_service.create_group("Expired", ["review", "ship"], 60)
+        notification_service.start_group_execution(group.id)
+        notification_service.update_group_elapsed_time(group.id, 60)
+
+        assert notification_manager.sent[0][0] == "expired"
+        assert notification_manager.sent[0][1] == "review"
+
+        notification_manager.sent[0][2]["snooze"]()
+        extended = notification_service.get_group(group.id)
+        assert extended.total_time_seconds == 360
+
+        notification_service.update_group_elapsed_time(group.id, 360)
+        notification_manager.sent[-1][2]["start-next"]()
+        updated = notification_service.get_group(group.id)
+        assert updated.current_task_id() == "ship"
+        assert updated.tasks_skipped == 1
+
+    def test_focus_lost_notification_resume_action_resumes_group(
+        self,
+        notification_service: GroupService,
+        notification_manager: FakeNotificationManager,
+    ) -> None:
+        group = notification_service.create_group("Blur", ["focus-task"], 120)
+        notification_service.start_group_execution(group.id)
+        notification_service.pause_group_execution(group.id)
+
+        notification_service.notify_focus_lost(group.id)
+
+        assert notification_manager.sent[0][0] == "focus"
+        notification_manager.sent[0][2]["resume"]()
+        updated = notification_service.get_group(group.id)
+        assert updated.status == GroupStatus.EXECUTING

@@ -208,16 +208,20 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.service = service
         self.timer_handle: int | None = None
         self.is_paused = False
+        self._has_been_active = False
         self.settings_window: SettingsWindow | None = None
         
         # Initialize GSettings for title countdown preference
         from gi.repository import Gio  # type: ignore[import-untyped]
         self.settings = Gio.Settings.new("org.gnome.Pulse")
         self.show_time_in_title = self.settings.get_boolean("show-time-in-title")
+        self.pause_on_blur = self.settings.get_boolean("pause-on-blur")
         self.group_name = group.name
-        
+
         # Listen for preference changes
         self.settings.connect("changed::show-time-in-title", self._on_show_time_in_title_changed)
+        self.settings.connect("changed::pause-on-blur", self._on_pause_on_blur_changed)
+        self.connect("notify::is-active", self._on_window_activity_changed)
 
         self._setup_actions()
 
@@ -339,6 +343,27 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         if not self.show_time_in_title:
             # Restore to original title when disabled
             self.set_title(f"Execute: {self.group_name}")
+
+    def _on_pause_on_blur_changed(self, _settings: object, _key: str) -> None:
+        """Update pause_on_blur preference from GSettings."""
+        self.pause_on_blur = self.settings.get_boolean("pause-on-blur")
+
+    def _on_window_activity_changed(self, _window: Gtk.ApplicationWindow, _param: object) -> None:
+        """Pause the group and emit a notification when the window loses focus."""
+        if self.is_active():
+            self._has_been_active = True
+            return
+        if not self._has_been_active or not self.pause_on_blur or self.is_paused:
+            return
+        if self.group.status != GroupStatus.EXECUTING:
+            return
+
+        self.service.pause_group_execution(self.group.id)
+        self._stop_timer()
+        self.controls.pause_button.set_label("Resume")
+        self.is_paused = True
+        self.group = self.service.get_group(self.group.id) or self.group
+        self.service.notify_focus_lost(self.group.id)
 
     def _setup_keyboard_shortcuts(self) -> None:
         """Setup keyboard shortcuts for group execution window."""
