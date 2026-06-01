@@ -209,6 +209,15 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.timer_handle: int | None = None
         self.is_paused = False
         self.settings_window: SettingsWindow | None = None
+        
+        # Initialize GSettings for title countdown preference
+        from gi.repository import Gio  # type: ignore[import-untyped]
+        self.settings = Gio.Settings.new("org.gnome.Pulse")
+        self.show_time_in_title = self.settings.get_boolean("show-time-in-title")
+        self.group_name = group.name
+        
+        # Listen for preference changes
+        self.settings.connect("changed::show-time-in-title", self._on_show_time_in_title_changed)
 
         self._setup_actions()
 
@@ -324,6 +333,13 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.settings_window = None
         return False
 
+    def _on_show_time_in_title_changed(self, _settings: object, _key: str) -> None:
+        """Update show_time_in_title preference from GSettings."""
+        self.show_time_in_title = self.settings.get_boolean("show-time-in-title")
+        if not self.show_time_in_title:
+            # Restore to original title when disabled
+            self.set_title(f"Execute: {self.group_name}")
+
     def _setup_keyboard_shortcuts(self) -> None:
         """Setup keyboard shortcuts for group execution window."""
         # Create key event controller
@@ -382,6 +398,10 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
                 f'<span font="JetBrains Mono 48" weight="bold">'
                 f"{minutes:02d}:{seconds:02d}</span>"
             )
+            
+            # Update window title with countdown if enabled
+            if self.show_time_in_title:
+                self.set_title(f"{minutes:02d}:{seconds:02d} - {self.group_name}")
 
             # Update task queue
             current_task = self.group.current_task_id()
