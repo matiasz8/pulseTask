@@ -3,6 +3,18 @@
   <!-- org.gnome.Pulse: Main application settings -->
   <schema id="org.gnome.Pulse" path="/org/gnome/Pulse/" gettext-domain="pulsetask">
     <!-- UI Preferences -->
+    <key type="b" name="dark-mode">
+      <default>false</default>
+      <summary>Enable dark mode</summary>
+      <description>When true, PulseTask uses the dark Adwaita color scheme</description>
+    </key>
+
+    <key type="s" name="week-start">
+      <default>'Monday'</default>
+      <summary>First day of the week</summary>
+      <description>Controls whether calendars start on Monday or Sunday</description>
+    </key>
+
     <key type="b" name="show-overlay">
       <default>false</default>
       <summary>Show compact overlay window</summary>
@@ -20,6 +32,43 @@
       <default>false</default>
       <summary>Enable focus mode</summary>
       <description>When true, disable all notifications and interruptions</description>
+    </key>
+
+    <key type="b" name="auto-start-next">
+      <default>true</default>
+      <summary>Auto-start the next task</summary>
+      <description>Automatically continue to the next task when the current one completes</description>
+    </key>
+
+    <key type="b" name="show-time-in-title">
+      <default>false</default>
+      <summary>Show remaining time in the window title</summary>
+      <description>Display the remaining focus time in the execution window title</description>
+    </key>
+
+    <key type="b" name="pause-on-blur">
+      <default>false</default>
+      <summary>Pause on window blur</summary>
+      <description>Pause the active timer when the execution window loses focus</description>
+    </key>
+
+    <key type="b" name="notifications-enabled">
+      <default>true</default>
+      <summary>Enable desktop notifications</summary>
+      <description>Show desktop notifications for PulseTask events</description>
+    </key>
+
+    <key type="b" name="expiration-warnings">
+      <default>true</default>
+      <summary>Enable expiration warnings</summary>
+      <description>Show warning notifications before a task expires</description>
+    </key>
+
+    <key type="i" name="warning-threshold">
+      <default>5</default>
+      <range min="1" max="60"/>
+      <summary>Warning threshold in minutes</summary>
+      <description>How many minutes before expiration to show a warning notification</description>
     </key>
 
     <!-- Data Preferences -->
