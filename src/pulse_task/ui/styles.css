@@ -109,18 +109,6 @@
     transition: all 200ms ease-out;
 }
 
-/* Responsive */
-@media (max-width: 600px) {
-    .group-window {
-        margin: 0;
-    }
-
-    .timer-display {
-        margin: 12px;
-        font-size: 36pt;
-    }
-}
-
 /* Stats Window Styling */
 
 .stats-window {
@@ -201,29 +189,6 @@ entry:focus {
     outline-width: 3px;
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: more) {
-    .timer-display {
-        font-weight: 900;
-    }
-
-    .task-row-current {
-        border: 2px solid @theme_accent_color;
-    }
-
-    button {
-        border: 2px solid currentColor;
-    }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
 /* Statistics dashboard styling */
 
 .stats-window {

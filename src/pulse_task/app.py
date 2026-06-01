@@ -1,4 +1,6 @@
 from pathlib import Path
+import os
+import sys
 
 from pulse_task.core.alerts import AlertManager
 from pulse_task.core.group_service import GroupService
@@ -14,9 +16,29 @@ try:
     import gi  # type: ignore[import-untyped]
 
     gi.require_version("Gio", "2.0")
-    from gi.repository import Gio  # type: ignore[import-untyped]
+    from gi.repository import Gio, GLib  # type: ignore[import-untyped]
 except (ImportError, ValueError):
     Gio = None
+    GLib = None
+
+
+def _setup_gsettings_path() -> None:
+    """Setup GSettings schema path for development/local usage."""
+    if GLib is None:
+        return
+    
+    # Check if schema is in development directory
+    dev_schema_dir = Path(__file__).parent.parent.parent / "data"
+    if dev_schema_dir.exists() and (dev_schema_dir / "gschemas.compiled").exists():
+        schema_path = str(dev_schema_dir)
+        try:
+            # Get current search path
+            schema_search_path = GLib.get_system_data_dirs()
+            # Prepend development schema directory
+            GLib.set_user_data_dirs(schema_path)
+        except Exception:
+            # If that fails, just set environment variable
+            os.environ["GSETTINGS_SCHEMA_DIR"] = schema_path
 
 
 def _resolve_task_title(service: TaskService, task_id: str) -> str | None:
@@ -54,6 +76,7 @@ def _search_provider_settings() -> object:
 
 def run() -> int:
     """Application entrypoint."""
+    _setup_gsettings_path()
     data_dir = Path.home() / ".local" / "share" / "pulsetask"
     data_dir.mkdir(parents=True, exist_ok=True)
     config_dir = Path.home() / ".config" / "pulsetask"
