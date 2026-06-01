@@ -12,10 +12,11 @@ import gi  # noqa: E402
 gi.require_version("Gtk", "4.0")  # noqa: E402
 gi.require_version("Adw", "1")  # noqa: E402
 
-from gi.repository import Adw, GLib, Gtk  # noqa: E402 # type: ignore[import-untyped]
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402 # type: ignore[import-untyped]
 
 from pulse_task.core.group import GroupStatus, TaskGroup  # noqa: E402
 from pulse_task.core.group_service import GroupService  # noqa: E402
+from pulse_task.ui.settings_window import SettingsWindow  # noqa: E402
 
 
 class TimerDisplay(Gtk.Label):
@@ -123,29 +124,36 @@ class TaskQueue(Gtk.Box):
 
 
 class ControlPanel(Gtk.Box):
-    """Control buttons for group execution."""
+    """Control buttons for group execution with improved UX."""
 
     def __init__(self) -> None:
-        """Initialize control panel."""
+        """Initialize control panel with better layout and accessibility."""
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         self.set_margin_top(16)
         self.set_margin_bottom(16)
         self.set_margin_start(16)
         self.set_margin_end(16)
         self.set_halign(Gtk.Align.CENTER)
+        self.add_css_class("control-panel")
 
-        # Play/Pause button
+        # Play/Pause button (primary action)
         self.pause_button = Gtk.Button(label="Pause")
         self.pause_button.add_css_class("suggested-action")
+        self.pause_button.add_css_class("pill-button")
+        self.pause_button.set_tooltip_text("Space: Pause/Resume execution (Ctrl+P)")
         self.append(self.pause_button)
 
-        # Skip button
+        # Skip button (secondary action)
         self.skip_button = Gtk.Button(label="Skip Task")
+        self.skip_button.add_css_class("pill-button")
+        self.skip_button.set_tooltip_text("Skip to next task (Ctrl+Right)")
         self.append(self.skip_button)
 
-        # Stop button
+        # Stop button (destructive action)
         self.stop_button = Gtk.Button(label="Stop")
         self.stop_button.add_css_class("destructive-action")
+        self.stop_button.add_css_class("pill-button")
+        self.stop_button.set_tooltip_text("Stop execution and close (Ctrl+Q)")
         self.append(self.stop_button)
 
 
@@ -200,6 +208,9 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.service = service
         self.timer_handle: int | None = None
         self.is_paused = False
+        self.settings_window: SettingsWindow | None = None
+
+        self._setup_actions()
 
         # Window setup
         self.set_title(f"Execute: {group.name}")
@@ -214,9 +225,13 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         vbox.set_margin_start(16)
         vbox.set_margin_end(16)
 
+        header_bar = self._build_header_bar()
+        vbox.append(header_bar)
+
         # Title
         title_label = Gtk.Label(label=group.name)
         title_label.add_css_class("title-2")
+        title_label.set_margin_bottom(16)
         vbox.append(title_label)
 
         # Timer display
@@ -240,6 +255,9 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.controls.skip_button.connect("clicked", self._on_skip_clicked)
         self.controls.stop_button.connect("clicked", self._on_stop_clicked)
 
+        # Setup keyboard shortcuts
+        self._setup_keyboard_shortcuts()
+
         self.set_child(vbox)
 
         # Ensure group is started
@@ -251,6 +269,97 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
 
         # Start timer
         self._start_timer()
+
+    def _setup_actions(self) -> None:
+        """Register window actions used by the header menu."""
+        settings_action = Gio.SimpleAction.new("settings", None)
+        settings_action.connect("activate", self._on_settings_activated)
+        self.add_action(settings_action)
+
+    def _setup_keyboard_shortcuts(self) -> None:
+        """Register keyboard shortcuts for window actions."""
+        application = self.get_application()
+        if application is not None:
+            application.set_accels_for_action("win.settings", ["<Primary>comma"])
+
+    def _build_header_bar(self) -> Gtk.HeaderBar:
+        """Build the header bar with the settings menu."""
+        header_bar = Gtk.HeaderBar()
+
+        menu_model = Gio.Menu()
+        menu_model.append("Settings", "win.settings")
+
+        menu_button = Gtk.MenuButton()
+        menu_button.set_icon_name("open-menu-symbolic")
+        menu_button.set_menu_model(menu_model)
+        menu_button.set_tooltip_text("Open window menu")
+        header_bar.pack_end(menu_button)
+        return header_bar
+
+    def _on_settings_activated(
+        self,
+        action: Gio.SimpleAction,
+        parameter: GLib.Variant | None,
+    ) -> None:
+        """Open the settings window from the header menu."""
+        _ = action
+        _ = parameter
+        self._open_settings_window()
+
+    def _open_settings_window(self) -> None:
+        """Create or present the shared settings window."""
+        if self.settings_window is None:
+            application = self.get_application()
+            if application is None:
+                raise RuntimeError("Settings window requires an active application")
+
+            self.settings_window = SettingsWindow(application, parent=self)
+            self.settings_window.connect("close-request", self._on_settings_window_closed)
+
+        self.settings_window.present()
+
+    def _on_settings_window_closed(self, window: SettingsWindow) -> bool:
+        """Drop the cached settings window reference when it closes."""
+        _ = window
+        self.settings_window = None
+        return False
+
+    def _setup_keyboard_shortcuts(self) -> None:
+        """Setup keyboard shortcuts for group execution window."""
+        # Create key event controller
+        key_controller = Gtk.EventControllerKey.new()
+        self.add_controller(key_controller)
+
+        def on_key_pressed(controller, keyval, keycode, state):  # noqa: ARG001
+            """Handle key press events."""
+            from gi.repository import Gdk  # type: ignore[import-untyped]
+
+            ctrl = state & Gdk.ModifierType.CONTROL_MASK
+            _shift = state & Gdk.ModifierType.SHIFT_MASK
+
+            # Space: Pause/Resume
+            if keyval == Gdk.KEY_space:
+                self.controls.pause_button.emit("clicked")
+                return True
+
+            # Ctrl+P: Pause/Resume (alternative)
+            if ctrl and keyval in (Gdk.KEY_p, ord("P")):
+                self.controls.pause_button.emit("clicked")
+                return True
+
+            # Ctrl+Right: Skip task
+            if ctrl and keyval == Gdk.KEY_Right:
+                self.controls.skip_button.emit("clicked")
+                return True
+
+            # Ctrl+Q: Stop/Quit
+            if ctrl and keyval in (Gdk.KEY_q, ord("Q")):
+                self.controls.stop_button.emit("clicked")
+                return True
+
+            return False
+
+        key_controller.connect("key-pressed", on_key_pressed)
 
     def _start_timer(self) -> None:
         """Start the group execution timer."""
