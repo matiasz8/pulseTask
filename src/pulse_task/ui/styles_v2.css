@@ -1,0 +1,316 @@
+/* PulseTask V2 Component Styles */
+/* Design tokens and component-specific styling */
+
+/* ===================================================================
+   Design Tokens
+   =================================================================== */
+
+@define-color running_color #2ec27e;
+@define-color running_bg alpha(@running_color, 0.1);
+
+@define-color paused_color #e5a11c;
+@define-color paused_bg alpha(@paused_color, 0.1);
+
+@define-color expired_color #e01b24;
+@define-color expired_bg alpha(@expired_color, 0.1);
+
+@define-color completed_color #33d17a;
+@define-color completed_bg alpha(@completed_color, 0.1);
+
+@define-color pending_color #6b7280;
+@define-color pending_bg alpha(@pending_color, 0.1);
+
+/* ===================================================================
+   Focus View
+   =================================================================== */
+
+.focus-view {
+    padding: 48px;
+}
+
+.focus-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.text-expired {
+    color: @expired_color;
+}
+
+.text-completed {
+    color: @completed_color;
+}
+
+/* ===================================================================
+   Countdown Widget Sizes
+   =================================================================== */
+
+.countdown-xl {
+    font-size: 64px;
+    font-weight: 700;
+    font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+}
+
+.countdown-lg {
+    font-size: 48px;
+    font-weight: 600;
+    font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+}
+
+.countdown-md {
+    font-size: 32px;
+    font-weight: 600;
+    font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+}
+
+.countdown-sm {
+    font-size: 18px;
+    font-weight: 500;
+    font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+}
+
+.countdown-xs {
+    font-size: 14px;
+    font-weight: 500;
+    font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+}
+
+/* ===================================================================
+   Overlay
+   =================================================================== */
+
+.overlay {
+    background: alpha(@window_bg_color, 0.95);
+    border-radius: 12px;
+    border: 1px solid alpha(@borders, 0.5);
+}
+
+/* ===================================================================
+   Task Card
+   =================================================================== */
+
+.task-card {
+    padding: 12px;
+    border-radius: 8px;
+    transition: all 200ms ease-out;
+}
+
+.task-card-running {
+    border-left: 3px solid @running_color;
+    background: @running_bg;
+}
+
+.task-card-paused {
+    border-left: 3px solid @paused_color;
+    background: @paused_bg;
+}
+
+.task-card-expired {
+    border-left: 3px solid @expired_color;
+    background: @expired_bg;
+}
+
+.task-card-completed {
+    border-left: 3px solid @completed_color;
+    background: @completed_bg;
+}
+
+.task-card-pending {
+    border-left: 3px solid @pending_color;
+    background: @pending_bg;
+}
+
+.task-card-archived {
+    border-left: 3px solid alpha(@pending_color, 0.3);
+    opacity: 0.7;
+}
+
+.task-card-active {
+    outline: 2px solid @accent_bg_color;
+    outline-offset: 2px;
+}
+
+/* ===================================================================
+   Status Badges
+   =================================================================== */
+
+.status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.5px;
+}
+
+.status-running {
+    background: @running_bg;
+    color: @running_color;
+}
+
+.status-paused {
+    background: @paused_bg;
+    color: @paused_color;
+}
+
+.status-expired {
+    background: @expired_bg;
+    color: @expired_color;
+}
+
+.status-completed {
+    background: @completed_bg;
+    color: @completed_color;
+}
+
+.status-pending {
+    background: @pending_bg;
+    color: @pending_color;
+}
+
+.status-archived {
+    background: alpha(@pending_color, 0.05);
+    color: alpha(@pending_color, 0.6);
+}
+
+/* ===================================================================
+   V2 Buttons
+   =================================================================== */
+
+.btn-primary {
+    background: @accent_bg_color;
+    color: @accent_fg_color;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-weight: 600;
+}
+
+.btn-secondary {
+    background: alpha(@borders, 0.3);
+    color: @theme_fg_color;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-weight: 600;
+}
+
+.btn-success {
+    background: @completed_color;
+    color: white;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-weight: 600;
+}
+
+.btn-danger {
+    background: @expired_color;
+    color: white;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-weight: 600;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: @theme_fg_color;
+    border-radius: 8px;
+    padding: 8px 16px;
+}
+
+.btn-icon {
+    padding: 6px;
+    border-radius: 8px;
+}
+
+/* ===================================================================
+   Metric Cards (Stats View)
+   =================================================================== */
+
+.metric-card {
+    background: @theme_bg_color;
+    border: 1px solid @borders;
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 200ms ease-out;
+}
+
+.metric-card:hover {
+    border-color: alpha(@accent_bg_color, 0.3);
+}
+
+.stats-section {
+    background: alpha(@borders, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid @borders;
+}
+
+/* ===================================================================
+   Subtask List
+   =================================================================== */
+
+.subtask-completed {
+    opacity: 0.7;
+    background: @completed_bg;
+    border-radius: 6px;
+}
+
+.subtask-current {
+    background: alpha(@accent_bg_color, 0.1);
+    border: 1px solid alpha(@accent_bg_color, 0.3);
+    border-radius: 6px;
+}
+
+.subtask-future {
+    opacity: 0.5;
+    border-radius: 6px;
+}
+
+/* ===================================================================
+   Accessibility
+   =================================================================== */
+
+button:focus-visible {
+    outline: 3px solid @accent_bg_color;
+    outline-offset: 2px;
+}
+
+button:focus {
+    outline: 3px solid @accent_bg_color;
+    outline-offset: 2px;
+}
+
+entry:focus {
+    box-shadow: 0 0 0 3px alpha(@accent_bg_color, 0.3);
+}
+
+/* Ensure focus indicators never removed */
+*:focus {
+    outline-width: 3px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+    .task-card-running,
+    .task-card-paused,
+    .task-card-expired,
+    .task-card-completed {
+        border-width: 2px;
+    }
+
+    button {
+        border: 2px solid currentColor;
+    }
+
+    .status-badge {
+        border: 1px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

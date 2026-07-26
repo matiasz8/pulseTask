@@ -1,0 +1,487 @@
+/* PulseTask V2 - Base Theme Tokens */
+/* GNOME/libadwaita inspired - Calm execution environment */
+
+/* ============================================
+   SEMANTIC STATE COLORS
+   ============================================ */
+
+/* Running state - Active, focused work */
+@define-color running_color #2ec27e;
+@define-color running_bg alpha(@running_color, 0.12);
+@define-color running_border alpha(@running_color, 0.3);
+
+/* Paused state - Temporarily stopped */
+@define-color paused_color #e5a11c;
+@define-color paused_bg alpha(@paused_color, 0.12);
+@define-color paused_border alpha(@paused_color, 0.3);
+
+/* Pending state - Waiting to start */
+@define-color pending_color #6b7280;
+@define-color pending_bg alpha(@pending_color, 0.08);
+
+/* Expired state - Time's up */
+@define-color expired_color #e01b24;
+@define-color expired_bg alpha(@expired_color, 0.12);
+@define-color expired_border alpha(@expired_color, 0.3);
+
+/* Completed state - Successfully done */
+@define-color completed_color #33d17a;
+@define-color completed_bg alpha(@completed_color, 0.12);
+@define-color completed_border alpha(@completed_color, 0.3);
+
+/* Archived state - Stored away */
+@define-color archived_color #9ca3af;
+@define-color archived_bg alpha(@archived_color, 0.08);
+
+/* ============================================
+   SURFACE LEVELS
+   ============================================ */
+
+@define-color surface_0 alpha(@theme_bg_color, 1.0);
+@define-color surface_1 alpha(@theme_fg_color, 0.03);
+@define-color surface_2 alpha(@theme_fg_color, 0.06);
+@define-color surface_3 alpha(@theme_fg_color, 0.09);
+
+/* ============================================
+   COMMON SIZES & SPACING
+   ============================================ */
+
+@define-color border_color alpha(@theme_fg_color, 0.12);
+@define-color border_color_strong alpha(@theme_fg_color, 0.2);
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+/* Reset and base */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+/* Countdown displays - monospace, tabular nums */
+.countdown {
+    font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+.countdown-xl {
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.countdown-lg {
+    font-size: 48px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.countdown-md {
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.countdown-sm {
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.countdown-xs {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+/* ============================================
+   TASK CARD STYLES
+   ============================================ */
+
+.task-card {
+    background: @surface_1;
+    border-radius: 12px;
+    border: 1px solid @border_color;
+    padding: 16px;
+    transition: all 200ms ease;
+}
+
+.task-card:hover {
+    background: @surface_2;
+    border-color: @border_color_strong;
+}
+
+.task-card-active {
+    border-left: 3px solid @running_color;
+    background: @running_bg;
+}
+
+.task-card-running {
+    border-left: 3px solid @running_color;
+    background: @running_bg;
+}
+
+.task-card-paused {
+    border-left: 3px solid @paused_color;
+    background: @paused_bg;
+}
+
+.task-card-expired {
+    border-left: 3px solid @expired_color;
+    background: @expired_bg;
+}
+
+.task-card-completed {
+    border-left: 3px solid @completed_color;
+    background: @completed_bg;
+}
+
+.task-card-archived {
+    opacity: 0.7;
+}
+
+/* ============================================
+   STATUS BADGES
+   ============================================ */
+
+.status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.status-running {
+    color: @running_color;
+    background: @running_bg;
+}
+
+.status-paused {
+    color: @paused_color;
+    background: @paused_bg;
+}
+
+.status-pending {
+    color: @pending_color;
+    background: @pending_bg;
+}
+
+.status-expired {
+    color: @expired_color;
+    background: @expired_bg;
+}
+
+.status-completed {
+    color: @completed_color;
+    background: @completed_bg;
+}
+
+.status-archived {
+    color: @archived_color;
+    background: @archived_bg;
+}
+
+/* ============================================
+   BUTTON STYLES
+   ============================================ */
+
+/* Pill buttons for primary actions */
+.pill {
+    border-radius: 999px;
+}
+
+/* Primary action button */
+.btn-primary {
+    background: @accent_bg_color;
+    color: @accent_fg_color;
+    border-radius: 999px;
+    padding: 8px 24px;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background: alpha(@accent_bg_color, 0.9);
+}
+
+/* Secondary button */
+.btn-secondary {
+    background: @surface_2;
+    color: @theme_fg_color;
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-weight: 500;
+}
+
+.btn-secondary:hover {
+    background: @surface_3;
+}
+
+/* Success button (complete) */
+.btn-success {
+    background: @completed_color;
+    color: white;
+    border-radius: 999px;
+    padding: 8px 24px;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background: alpha(@completed_color, 0.9);
+}
+
+/* Danger button */
+.btn-danger {
+    background: @expired_color;
+    color: white;
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-weight: 500;
+}
+
+.btn-danger:hover {
+    background: alpha(@expired_color, 0.9);
+}
+
+/* Ghost button (minimal) */
+.btn-ghost {
+    background: transparent;
+    color: @theme_fg_color;
+    border-radius: 8px;
+    padding: 8px 16px;
+}
+
+.btn-ghost:hover {
+    background: @surface_2;
+}
+
+/* Icon button (square) */
+.btn-icon {
+    background: transparent;
+    color: @theme_fg_color;
+    border-radius: 8px;
+    padding: 8px;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.btn-icon:hover {
+    background: @surface_2;
+}
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+
+.progress-bar {
+    height: 6px;
+    background: @surface_2;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 300ms ease;
+}
+
+.progress-running {
+    background: @running_color;
+}
+
+.progress-paused {
+    background: @paused_color;
+}
+
+.progress-expired {
+    background: @expired_color;
+}
+
+.progress-completed {
+    background: @completed_color;
+}
+
+/* ============================================
+   OVERLAY STYLES
+   ============================================ */
+
+.overlay {
+    background: alpha(@theme_bg_color, 0.95);
+    border-radius: 12px;
+    border: 1px solid @border_color;
+    box-shadow: 0 8px 32px alpha(black, 0.2);
+}
+
+.overlay-compact {
+    padding: 12px;
+}
+
+.overlay-normal {
+    padding: 16px;
+}
+
+/* ============================================
+   FOCUS VIEW STYLES
+   ============================================ */
+
+.focus-view {
+    padding: 48px;
+}
+
+.focus-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: @theme_fg_color;
+}
+
+.focus-description {
+    font-size: 16px;
+    color: alpha(@theme_fg_color, 0.6);
+}
+
+/* ============================================
+   SUBTASK PROGRESS
+   ============================================ */
+
+.subtask-list {
+    background: @surface_1;
+    border-radius: 12px;
+    border: 1px solid @border_color;
+    padding: 8px;
+}
+
+.subtask-item {
+    padding: 12px;
+    border-radius: 8px;
+    transition: background 150ms ease;
+}
+
+.subtask-item:hover {
+    background: @surface_2;
+}
+
+.subtask-item-active {
+    background: alpha(@accent_bg_color, 0.1);
+    border: 1px solid alpha(@accent_bg_color, 0.3);
+}
+
+.subtask-item-completed {
+    opacity: 0.6;
+}
+
+.subtask-number {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    border: 2px solid @border_color;
+    color: alpha(@theme_fg_color, 0.6);
+}
+
+.subtask-number-active {
+    border-color: @accent_bg_color;
+    color: @accent_bg_color;
+}
+
+.subtask-number-completed {
+    background: @completed_color;
+    border-color: @completed_color;
+    color: white;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+/* Pulse animation for running state */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Smooth fade */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 200ms ease-out;
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+/* Focus indicators for keyboard navigation */
+.focus-ring:focus-visible {
+    outline: 2px solid @accent_bg_color;
+    outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .task-card {
+        border-width: 2px;
+    }
+    
+    .status-badge {
+        border: 1px solid currentColor;
+    }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
