@@ -59,9 +59,7 @@ class GroupOverlay(Gtk.Window):
         # Timer display
         self.timer_label = Gtk.Label()
         self.timer_label.add_css_class("overlay-timer")
-        self.timer_label.set_markup(
-            '<span font="JetBrains Mono 24" weight="bold">00:00</span>'
-        )
+        self.timer_label.set_markup('<span font="JetBrains Mono 24" weight="bold">00:00</span>')
         vbox.append(self.timer_label)
 
         # Task name
@@ -114,8 +112,7 @@ class GroupOverlay(Gtk.Window):
             minutes = remaining // 60
             seconds = remaining % 60
             self.timer_label.set_markup(
-                f'<span font="JetBrains Mono 24" weight="bold">'
-                f"{minutes:02d}:{seconds:02d}</span>"
+                f'<span font="JetBrains Mono 24" weight="bold">{minutes:02d}:{seconds:02d}</span>'
             )
 
             # Update task name

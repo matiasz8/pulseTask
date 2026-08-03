@@ -40,7 +40,7 @@ class StatsWindow(Gtk.ApplicationWindow):
 
         # Main container
         header_bar = Adw.HeaderBar()
-        
+
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         vbox.append(header_bar)
 
@@ -49,9 +49,7 @@ class StatsWindow(Gtk.ApplicationWindow):
         scroll.set_vexpand(True)
         scroll.set_hexpand(True)
 
-        content = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, spacing=24
-        )
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
         content.set_margin_top(24)
         content.set_margin_bottom(24)
         content.set_margin_start(24)
@@ -138,15 +136,11 @@ class StatsWindow(Gtk.ApplicationWindow):
 
         heatmap = self.stats_service.get_focus_heatmap(days=7)
 
-        heatmap_box = Gtk.Box(
-            orientation=Gtk.Orientation.HORIZONTAL, spacing=8
-        )
+        heatmap_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         heatmap_box.set_halign(Gtk.Align.START)
 
         for day, intensity in heatmap.items():
-            day_box = Gtk.Box(
-                orientation=Gtk.Orientation.VERTICAL, spacing=4
-            )
+            day_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
 
             # Color block (4 intensity levels)
             intensity_level = min(4, int(intensity * 4))
@@ -154,9 +148,7 @@ class StatsWindow(Gtk.ApplicationWindow):
             color_block = Gtk.Box()
             color_block.set_size_request(32, 32)
             color_block.add_css_class("heatmap-block")
-            color_block.set_css_classes(
-                [f"heatmap-{intensity_level}", "heatmap-block"]
-            )
+            color_block.set_css_classes([f"heatmap-{intensity_level}", "heatmap-block"])
             day_box.append(color_block)
 
             day_label = Gtk.Label(label=day[:3])
@@ -177,9 +169,7 @@ class StatsWindow(Gtk.ApplicationWindow):
         heading.add_css_class("heading-3")
         box.append(heading)
 
-        button_box = Gtk.Box(
-            orientation=Gtk.Orientation.HORIZONTAL, spacing=8
-        )
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
 
         csv_btn = Gtk.Button(label="Download CSV")
         csv_btn.connect("clicked", self._on_csv_export)

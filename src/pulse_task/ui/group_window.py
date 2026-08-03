@@ -270,8 +270,7 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
             minutes = remaining // 60
             seconds = remaining % 60
             self.timer_display.set_markup(
-                f'<span font="JetBrains Mono 48" weight="bold">'
-                f"{minutes:02d}:{seconds:02d}</span>"
+                f'<span font="JetBrains Mono 48" weight="bold">{minutes:02d}:{seconds:02d}</span>'
             )
 
             # Update task queue
@@ -343,6 +342,5 @@ class GroupExecutionWindow(Gtk.ApplicationWindow):
         self.controls.skip_button.set_sensitive(False)
         self.controls.stop_button.set_label("Close")
         self.timer_display.set_markup(
-            '<span font="JetBrains Mono 48" weight="bold" '
-            'color="#33d17a">✓</span>'
+            '<span font="JetBrains Mono 48" weight="bold" color="#33d17a">✓</span>'
         )

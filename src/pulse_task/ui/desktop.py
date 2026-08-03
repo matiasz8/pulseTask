@@ -138,7 +138,6 @@ def launch_desktop_ui(
     def should_show_snooze(task: Task, service: TaskService) -> bool:
         return task.parent_task_id is None and not service.list_subtasks(task.id)
 
-
     class SettingsWindow(Adw.ApplicationWindow):
         def __init__(self, parent_window) -> None:
             super().__init__(application=app)
@@ -431,7 +430,7 @@ def launch_desktop_ui(
 
         def _install_css(self) -> None:
             provider = Gtk.CssProvider()
-            
+
             # Try to load from styles.css file (for POC development)
             css_path = Path(__file__).parent / "styles.css"
             if css_path.exists():
@@ -468,7 +467,7 @@ def launch_desktop_ui(
                 }
                 """
                 provider.load_from_data(css.encode("utf-8"))
-            
+
             Gtk.StyleContext.add_provider_for_display(
                 self.get_display(),
                 provider,
