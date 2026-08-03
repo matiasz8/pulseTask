@@ -1,0 +1,3 @@
+[console_scripts]
+pulsetask = pulse_task.__main__:main
+pulsetask-metrics = pulse_task.metrics_report:main

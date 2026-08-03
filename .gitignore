@@ -1,20 +1,38 @@
-__pycache__/
-*.py[cod]
-*.so
-.Python
-.venv/
-venv/
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
 .pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-*.egg-info/
-dist/
+coverage/
+
+# Next.js
+.next/
+out/
 build/
-*.db
-*.sqlite3
-.DS_Store
+
+# Environment
+.env*.local
+.env
+
+# IDE
 .vscode/
 .continue/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.db
+*.sqlite3
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archives
 *.zip
