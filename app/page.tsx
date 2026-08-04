@@ -117,12 +117,17 @@ export default function PulseTaskApp() {
       return;
     }
     if (task.status === 'pending') {
-      startTask(task.id);
+      // View pending task but don't auto-start
+      viewTask(task.id);
     } else if (task.status === 'paused') {
-      resumeTask(task.id);
+      // View paused task
+      viewTask(task.id);
+    } else if (task.status === 'running') {
+      // View running task
+      viewTask(task.id);
     }
     setViewMode('focus');
-  }, [startTask, viewTask, resumeTask, setViewMode]);
+  }, [viewTask, setViewMode]);
   
   const renderMainContent = () => {
     switch (viewMode) {
