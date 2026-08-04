@@ -1,89 +1,93 @@
-# PulseTask Quick Start Guide
+# PulseTask v2 Quick Start Guide
 
 ## ⚡ Ejecutar la Aplicación
 
 ```bash
-# Comando correcto (Python, no Node.js)
+# Iniciar servidor de desarrollo
 make run
 
 # O manualmente:
-uv run pulsetask
+npm run dev
 ```
+
+El servidor estará disponible en: **http://localhost:3000**
 
 ## 🔧 Configuración Inicial (Solo primera vez)
 
 ```bash
-# Crear virtual environment
-make venv
-
 # Instalar dependencias
-make sync
+make install
 
 # Ejecutar
 make run
+
+# Compilar para producción
+make build
 ```
 
 ## 📋 Comandos Disponibles
 
 ```bash
-make test          # Ejecutar tests (151 tests)
+make install       # Instalar dependencias
+make dev           # Servidor de desarrollo
+make build         # Compilar para producción
+make start         # Iniciar servidor de producción
 make lint          # Verificar código
-make typecheck     # Type checking
-make run           # Ejecutar app
-make ci            # Lint + typecheck + test
+make clean         # Limpiar caché y node_modules
+make run           # Alias para 'make dev'
+make help          # Mostrar todos los comandos
 ```
 
 ## ❌ Errores Comunes
 
-### Error: "GTK4/libadwaita is not available"
+### Error: "Module not found"
 ```bash
-# En Ubuntu/Debian:
-sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libnotify-bin
-
-# Luego recrear el venv:
-rm -rf .venv
-make venv
-make sync
+make install
 make run
 ```
 
-### Error: "npm run dev" no existe
-Este es un proyecto **Python**, no Node.js
-- ❌ `npm run dev` (Node.js)
-- ✅ `make run` (Python)
-
-### Error: "module not found"
+### Error: Puerto 3000 en uso
 ```bash
-make venv
-make sync
-make run
+# Encuentra el proceso en puerto 3000
+lsof -i :3000
+
+# O usa un puerto diferente:
+PORT=3001 npm run dev
+```
+
+### Error: "Command not found: npm"
+Asegúrate de tener Node.js instalado:
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install 22
+nvm use 22
 ```
 
 ## 📁 Estructura del Proyecto
 
 ```
 pulseTask/
-├── src/pulse_task/     # Código fuente
-│   ├── core/           # Lógica de negocio
-│   ├── ui/             # Interfaz GTK4
-│   └── dbus/           # Integración GNOME
-├── tests/              # Tests
-├── docs/               # Documentación
-└── data/               # Metadatos desktop/dbus
+├── app/            # Next.js app router
+├── components/     # Componentes React (60+)
+├── lib/            # Lógica y estado (Zustand)
+├── hooks/          # React hooks custom
+├── public/         # Assets estáticos
+├── styles/         # Estilos globales
+├── package.json    # Dependencias
+└── tsconfig.json   # Configuración TypeScript
 ```
 
 ## 🚀 Próximos Pasos
 
-Ver: [FINAL_PROJECT_STATUS.md](FINAL_PROJECT_STATUS.md)
-
-- Flathub submission
-- Community launch (Reddit, HackerNews)
-- v0.3.0 GNOME integration
+1. Ejecutar: `make run`
+2. Abrir: http://localhost:3000
+3. Leer: [START_HERE.md](START_HERE.md)
+4. Explorar: [README_REDESIGN.md](README_REDESIGN.md)
 
 ## 📚 Documentación Completa
 
-- **README.md** - Overview del proyecto
-- **CONTRIBUTING.md** - Guía de contribución
-- **docs/API.md** - API documentation
-- **docs/ARCHITECTURE.md** - Arquitectura
-- **docs/marketing/** - Guías de marketing para launch
+- **START_HERE.md** - Guía rápida
+- **README_REDESIGN.md** - Documentación del rediseño
+- **MIGRATION_SUMMARY.md** - Detalles de la migración
+- **REDESIGN_APPLIED.txt** - Checklist de implementación
+
