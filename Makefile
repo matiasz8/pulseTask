@@ -1,51 +1,41 @@
-UV ?= uv
-PYTHON ?= 3.12
+.PHONY: install dev build start lint test clean help
 
-.PHONY: check-uv venv sync doctor-gtk test lint typecheck run ci install-desktop uninstall-desktop flatpak-build flatpak-install flatpak-run flatpak-validate metrics-report
+# Web development commands
+install:
+	npm install
 
-check-uv:
-	@command -v $(UV) >/dev/null 2>&1 || (echo "uv is required. Install from https://docs.astral.sh/uv/getting-started/installation/" && exit 1)
+dev:
+	npm run dev
 
-venv: check-uv
-	$(UV) venv --python $(PYTHON) --system-site-packages
+build:
+	npm run build
 
-sync: check-uv
-	$(UV) sync --extra dev
+start:
+	npm start
 
-doctor-gtk: check-uv
-	$(UV) run python -c "import gi; gi.require_version('Gtk', '4.0'); gi.require_version('Adw', '1'); print('GTK bindings OK')"
+lint:
+	npm run lint
 
-test: check-uv
-	$(UV) run pytest
+# Aliases for convenience
+run: dev
 
-lint: check-uv
-	$(UV) run ruff check .
+ci: build
 
-typecheck: check-uv
-	$(UV) run mypy src
+test:
+	@echo "Testing not yet configured for web version"
 
-run: check-uv
-	$(UV) run pulsetask
+clean:
+	rm -rf .next node_modules
 
-ci: lint typecheck test
-
-install-desktop:
-	bash scripts/install-local-desktop.sh
-
-uninstall-desktop:
-	bash scripts/uninstall-local-desktop.sh
-
-flatpak-build:
-	flatpak-builder --force-clean build-flatpak packaging/flatpak/com.matiasz8.pulsetask.json
-
-flatpak-install: flatpak-build
-	flatpak-builder --user --install --force-clean build-flatpak packaging/flatpak/com.matiasz8.pulsetask.json
-
-flatpak-run:
-	flatpak run com.matiasz8.pulsetask
-
-flatpak-validate:
-	bash scripts/validate-flatpak-metadata.sh
-
-metrics-report: check-uv
-	$(UV) run pulsetask-metrics
+help:
+	@echo "PulseTask v2 - Web Application"
+	@echo ""
+	@echo "Available commands:"
+	@echo "  make install    Install dependencies"
+	@echo "  make dev        Start development server (http://localhost:3000)"
+	@echo "  make build      Build for production"
+	@echo "  make start      Start production server"
+	@echo "  make lint       Run ESLint"
+	@echo "  make run        Alias for 'make dev'"
+	@echo "  make clean      Remove build artifacts and node_modules"
+	@echo "  make help       Show this help message"
