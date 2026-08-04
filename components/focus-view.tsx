@@ -229,13 +229,31 @@ export function FocusView({
       
       {/* Countdown */}
       <div className="my-12">
-        <CountdownDisplay
-          elapsed={task.elapsed}
-          duration={task.duration}
-          status={task.status}
-          size="xl"
-          showProgress
-        />
+        {task.subtasks.length > 0 && currentSubtask ? (
+          <>
+            <div className="text-sm text-muted-foreground mb-3">
+              Current Step: {task.currentSubtaskIndex + 1} of {task.subtasks.length}
+            </div>
+            <div className="text-center mb-4">
+              <h2 className="text-lg font-medium">{currentSubtask.title}</h2>
+            </div>
+            <CountdownDisplay
+              elapsed={currentSubtask.elapsed}
+              duration={currentSubtask.duration}
+              status={task.status}
+              size="xl"
+              showProgress
+            />
+          </>
+        ) : (
+          <CountdownDisplay
+            elapsed={task.elapsed}
+            duration={task.duration}
+            status={task.status}
+            size="xl"
+            showProgress
+          />
+        )}
       </div>
       
       {/* Subtasks progress */}
@@ -255,6 +273,9 @@ export function FocusView({
               const isCurrent = index === task.currentSubtaskIndex;
               const isPast = subtask.completed;
               const isFuture = index > task.currentSubtaskIndex && !subtask.completed;
+              const remainingTime = subtask.duration - subtask.elapsed;
+              const mins = Math.floor(remainingTime / 60);
+              const secs = remainingTime % 60;
               
               return (
                 <button
@@ -277,12 +298,17 @@ export function FocusView({
                   )}>
                     {isPast ? <Check className="w-3.5 h-3.5" /> : index + 1}
                   </div>
-                  <span className={cn(
-                    'flex-1 text-sm',
-                    isPast && 'line-through'
-                  )}>
-                    {subtask.title}
-                  </span>
+                  <div className="flex-1">
+                    <span className={cn(
+                      'flex items-center gap-2 text-sm',
+                      isPast && 'line-through'
+                    )}>
+                      {subtask.title}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {mins}:{secs.toString().padStart(2, '0')}
+                  </div>
                   {isCurrent && !isPast && (task.status === 'running' || task.status === 'expired') && (
                     <ChevronRight className="w-4 h-4 text-primary" />
                   )}

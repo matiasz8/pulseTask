@@ -7,8 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Kbd } from '@/components/ui/kbd';
 import { Plus, Clock, List } from 'lucide-react';
 
+interface SubtaskWithTime {
+  title: string;
+  duration: number; // in minutes
+}
+
 interface TaskCreatorProps {
-  onCreateTask: (title: string, duration: number, subtasks?: string[]) => void;
+  onCreateTask: (title: string, duration: number, subtasks?: SubtaskWithTime[]) => void;
   className?: string;
 }
 
@@ -25,31 +30,42 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
   const [title, setTitle] = useState('');
   const [customMinutes, setCustomMinutes] = useState('');
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
-  const [subtaskInput, setSubtaskInput] = useState('');
-  const [subtasks, setSubtasks] = useState<string[]>([]);
+  const [subtasks, setSubtasks] = useState<SubtaskWithTime[]>([]);
   const [showSubtasks, setShowSubtasks] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [subtaskDuration, setSubtaskDuration] = useState('');
   
   const handleCreate = useCallback(() => {
     if (!title.trim()) return;
     
-    let duration = selectedDuration;
-    if (!duration && customMinutes) {
+    let totalDuration = selectedDuration;
+    if (!totalDuration && customMinutes) {
       const mins = parseInt(customMinutes, 10);
       if (!isNaN(mins) && mins > 0) {
-        duration = mins * 60;
+        totalDuration = mins * 60;
       }
     }
     
-    if (!duration) return;
+    // If there are subtasks, calculate total duration from them
+    if (subtasks.length > 0) {
+      totalDuration = subtasks.reduce((sum, st) => sum + (st.duration * 60), 0);
+    }
     
-    onCreateTask(title.trim(), duration, subtasks.length > 0 ? subtasks : undefined);
+    if (!totalDuration) return;
+    
+    onCreateTask(
+      title.trim(), 
+      totalDuration, 
+      subtasks.length > 0 ? subtasks : undefined
+    );
     
     // Reset form
     setTitle('');
     setCustomMinutes('');
     setSelectedDuration(null);
     setSubtasks([]);
-    setSubtaskInput('');
+    setSubtaskTitle('');
+    setSubtaskDuration('');
     setShowSubtasks(false);
     setIsExpanded(false);
   }, [title, selectedDuration, customMinutes, subtasks, onCreateTask]);
@@ -64,15 +80,21 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
   }, [handleCreate]);
   
   const addSubtask = useCallback(() => {
-    if (subtaskInput.trim()) {
-      setSubtasks(prev => [...prev, subtaskInput.trim()]);
-      setSubtaskInput('');
+    if (subtaskTitle.trim() && subtaskDuration) {
+      const mins = parseInt(subtaskDuration, 10);
+      if (!isNaN(mins) && mins > 0) {
+        setSubtasks(prev => [...prev, { title: subtaskTitle.trim(), duration: mins }]);
+        setSubtaskTitle('');
+        setSubtaskDuration('');
+      }
     }
-  }, [subtaskInput]);
+  }, [subtaskTitle, subtaskDuration]);
   
   const removeSubtask = useCallback((index: number) => {
     setSubtasks(prev => prev.filter((_, i) => i !== index));
   }, []);
+  
+  const totalSubtaskTime = subtasks.reduce((sum, st) => sum + st.duration, 0);
   
   if (!isExpanded) {
     return (
@@ -116,46 +138,47 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
       </div>
       
       {/* Duration Selection */}
-      <div className="space-y-3">
-        <label className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-          <Clock className="w-3.5 h-3.5" />
-          Duration
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {QUICK_DURATIONS.map(({ label, seconds }) => (
-            <button
-              key={seconds}
-              onClick={() => {
-                setSelectedDuration(seconds);
-                setCustomMinutes('');
-              }}
-              className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                'border',
-                selectedDuration === seconds
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-secondary/50 text-secondary-foreground border-border hover:bg-secondary'
-              )}
-            >
-              {label}
-            </button>
-          ))}
-          <div className="flex items-center gap-1">
-            <Input
-              type="number"
-              placeholder="Custom"
-              value={customMinutes}
-              onChange={(e) => {
-                setCustomMinutes(e.target.value);
-                setSelectedDuration(null);
-              }}
-              className="w-20 h-9 text-sm"
-              min={1}
-            />
-            <span className="text-sm text-muted-foreground">min</span>
+      {subtasks.length === 0 && (
+        <div className="space-y-3">
+          <label className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5" />
+            Duration
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_DURATIONS.map(({ label, seconds }) => (
+              <button
+                key={seconds}
+                onClick={() => {
+                  setSelectedDuration(seconds);
+                  setCustomMinutes('');
+                }}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                  'border',
+                  selectedDuration === seconds
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-secondary/50 text-secondary-foreground border-border hover:bg-secondary'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                placeholder="mins"
+                value={customMinutes}
+                onChange={(e) => {
+                  setCustomMinutes(e.target.value);
+                  setSelectedDuration(null);
+                }}
+                className="w-24 h-9 text-sm"
+                min={1}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
       {/* Subtasks */}
       <div className="space-y-3">
@@ -164,15 +187,18 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
           className="text-xs font-medium text-muted-foreground flex items-center gap-2 hover:text-foreground transition-colors"
         >
           <List className="w-3.5 h-3.5" />
-          Subtasks {subtasks.length > 0 && `(${subtasks.length})`}
+          Subtasks {subtasks.length > 0 && `(${subtasks.length} • ${totalSubtaskTime}m)`}
         </button>
         
         {showSubtasks && (
-          <div className="space-y-2 pl-5">
+          <div className="space-y-3 pl-5 border-l border-border">
             {subtasks.map((subtask, index) => (
               <div key={index} className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">{index + 1}.</span>
-                <span className="flex-1">{subtask}</span>
+                <span className="text-muted-foreground font-medium">{index + 1}.</span>
+                <div className="flex-1">
+                  <div className="font-medium">{subtask.title}</div>
+                  <div className="text-xs text-muted-foreground">{subtask.duration}m</div>
+                </div>
                 <button
                   onClick={() => removeSubtask(index)}
                   className="text-muted-foreground hover:text-destructive transition-colors"
@@ -181,11 +207,11 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
                 </button>
               </div>
             ))}
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-2">
               <Input
-                placeholder="Add subtask..."
-                value={subtaskInput}
-                onChange={(e) => setSubtaskInput(e.target.value)}
+                placeholder="Subtask..."
+                value={subtaskTitle}
+                onChange={(e) => setSubtaskTitle(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -194,11 +220,25 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
                 }}
                 className="flex-1 h-8 text-sm"
               />
+              <Input
+                type="number"
+                placeholder="mins"
+                value={subtaskDuration}
+                onChange={(e) => setSubtaskDuration(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSubtask();
+                  }
+                }}
+                className="w-20 h-8 text-sm"
+                min={1}
+              />
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={addSubtask}
-                disabled={!subtaskInput.trim()}
+                disabled={!subtaskTitle.trim() || !subtaskDuration}
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -220,7 +260,7 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
           <Kbd className="text-xs">⌘ Enter</Kbd>
           <Button
             onClick={handleCreate}
-            disabled={!title.trim() || (!selectedDuration && !customMinutes)}
+            disabled={!title.trim() || (!selectedDuration && !customMinutes && subtasks.length === 0)}
             size="sm"
           >
             Create Task

@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useTaskStore } from '@/lib/store';
+import type { SubtaskWithTime } from '@/lib/store';
 import { AppHeader } from '@/components/app-header';
 import { FocusView } from '@/components/focus-view';
 import { IdleState } from '@/components/idle-state';
@@ -99,11 +100,10 @@ export default function PulseTaskApp() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setViewMode, toggleOverlay]);
   
-  const handleCreateTask = useCallback((title: string, duration: number, subtasks?: string[]) => {
+  const handleCreateTask = useCallback((title: string, duration: number, subtasks?: SubtaskWithTime[]) => {
     const id = addTask(title, duration, undefined, subtasks);
-    startTask(id);
     setViewMode('focus');
-  }, [addTask, startTask, setViewMode]);
+  }, [addTask, setViewMode]);
   
   const handleSelectTask = useCallback((task: typeof tasks[0]) => {
     if (task.status === 'pending') {

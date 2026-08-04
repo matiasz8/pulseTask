@@ -8,6 +8,11 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
+interface SubtaskWithTime {
+  title: string;
+  duration: number; // in minutes
+}
+
 interface TaskStore {
   tasks: Task[];
   activeTaskId: string | null;
@@ -16,7 +21,7 @@ interface TaskStore {
   isOverlayVisible: boolean;
   
   // Task actions
-  addTask: (title: string, duration: number, description?: string, subtasks?: string[]) => string;
+  addTask: (title: string, duration: number, description?: string, subtasks?: SubtaskWithTime[]) => string;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   
@@ -57,20 +62,29 @@ export const useTaskStore = create<TaskStore>()(
       overlayMode: 'normal',
       isOverlayVisible: false,
       
-      addTask: (title, duration, description, subtaskTitles) => {
+      addTask: (title, duration, description, subtaskItems) => {
         const id = generateId();
-        const subtasks: Subtask[] = subtaskTitles?.map((t, i) => ({
-          id: generateId(),
-          title: t,
-          completed: false,
-          order: i
-        })) || [];
+        let subtasks: Subtask[] = [];
+        let totalDuration = duration;
+        
+        if (subtaskItems && subtaskItems.length > 0) {
+          subtasks = subtaskItems.map((st, i) => ({
+            id: generateId(),
+            title: st.title,
+            duration: st.duration * 60, // convert minutes to seconds
+            elapsed: 0,
+            completed: false,
+            order: i
+          }));
+          // Total duration is sum of all subtask durations
+          totalDuration = subtasks.reduce((sum, s) => sum + s.duration, 0);
+        }
         
         const task: Task = {
           id,
           title,
           description,
-          duration,
+          duration: totalDuration,
           elapsed: 0,
           status: 'pending',
           subtasks,
@@ -155,7 +169,7 @@ export const useTaskStore = create<TaskStore>()(
               expiredAt: undefined,
               pausedAt: undefined,
               currentSubtaskIndex: 0,
-              subtasks: t.subtasks.map(s => ({ ...s, completed: false }))
+              subtasks: t.subtasks.map(s => ({ ...s, completed: false, elapsed: 0 }))
             } : t
           ),
           activeTaskId: state.activeTaskId === id ? null : state.activeTaskId
@@ -192,6 +206,54 @@ export const useTaskStore = create<TaskStore>()(
           tasks: state.tasks.map(t => {
             if (t.id !== activeTaskId || t.status !== 'running') return t;
             
+            // Handle subtask timing logic
+            if (t.subtasks.length > 0) {
+              const currentSubtask = t.subtasks[t.currentSubtaskIndex];
+              if (!currentSubtask) {
+                // All subtasks completed
+                return {
+                  ...t,
+                  elapsed: t.duration,
+                  status: 'expired' as TaskStatus,
+                  expiredAt: new Date()
+                };
+              }
+              
+              // Increment elapsed on current subtask
+              const newSubtasks = t.subtasks.map((s, idx) => {
+                if (idx === t.currentSubtaskIndex) {
+                  return { ...s, elapsed: s.elapsed + 1 };
+                }
+                return s;
+              });
+              
+              // Check if current subtask is complete
+              const subtaskElapsed = newSubtasks[t.currentSubtaskIndex].elapsed;
+              const subtaskDuration = newSubtasks[t.currentSubtaskIndex].duration;
+              let nextIndex = t.currentSubtaskIndex;
+              
+              if (subtaskElapsed >= subtaskDuration) {
+                // Mark current subtask as completed
+                newSubtasks[t.currentSubtaskIndex].completed = true;
+                // Move to next subtask
+                nextIndex = t.currentSubtaskIndex + 1;
+              }
+              
+              const totalElapsed = newSubtasks.reduce((sum, s) => sum + s.elapsed, 0);
+              const isExpired = totalElapsed >= t.duration;
+              
+              return {
+                ...t,
+                elapsed: totalElapsed,
+                subtasks: newSubtasks,
+                currentSubtaskIndex: nextIndex,
+                overtime: isExpired ? totalElapsed - t.duration : 0,
+                status: isExpired ? 'expired' as TaskStatus : t.status,
+                expiredAt: isExpired && !t.expiredAt ? new Date() : t.expiredAt
+              };
+            }
+            
+            // No subtasks: simple timer logic
             const newElapsed = t.elapsed + 1;
             const isExpired = newElapsed >= t.duration;
             

@@ -3,6 +3,8 @@ export type TaskStatus = 'pending' | 'running' | 'paused' | 'expired' | 'complet
 export interface Subtask {
   id: string;
   title: string;
+  duration: number; // in seconds - individual duration for this subtask
+  elapsed: number; // in seconds - elapsed time for this subtask
   completed: boolean;
   order: number;
 }
@@ -11,8 +13,8 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
-  duration: number; // in seconds
-  elapsed: number; // in seconds
+  duration: number; // in seconds (sum of all subtask durations if subtasks exist)
+  elapsed: number; // in seconds (total across all subtasks)
   status: TaskStatus;
   subtasks: Subtask[];
   currentSubtaskIndex: number;
