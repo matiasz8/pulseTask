@@ -12,11 +12,16 @@ interface TaskListProps {
   tasks: Task[];
   activeTaskId: string | null;
   onSelectTask: (task: Task) => void;
-  onCreateTask: (title: string, duration: number, subtasks?: string[]) => void;
+  onCreateTask: (title: string, duration: number, subtasks?: SubtaskWithTime[], autoStart?: boolean) => void;
   className?: string;
 }
 
 type FilterType = 'active' | 'completed' | 'all';
+
+interface SubtaskWithTime {
+  title: string;
+  duration: number;
+}
 
 export function TaskList({ 
   tasks, 

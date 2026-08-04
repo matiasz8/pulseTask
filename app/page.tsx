@@ -101,10 +101,13 @@ export default function PulseTaskApp() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setViewMode, toggleOverlay]);
   
-  const handleCreateTask = useCallback((title: string, duration: number, subtasks?: SubtaskWithTime[]) => {
+  const handleCreateTask = useCallback((title: string, duration: number, subtasks?: SubtaskWithTime[], autoStart: boolean = false) => {
     const id = addTask(title, duration, undefined, subtasks);
+    if (autoStart) {
+      startTask(id);
+    }
     setViewMode('focus');
-  }, [addTask, setViewMode]);
+  }, [addTask, startTask, setViewMode]);
   
   const handleSelectTask = useCallback((task: typeof tasks[0]) => {
     if (task.status === 'completed' || task.status === 'expired' || task.status === 'archived') {

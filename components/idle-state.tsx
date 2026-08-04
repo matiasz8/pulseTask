@@ -5,8 +5,13 @@ import { TaskCreator } from './task-creator';
 import { Clock, Target, Zap } from 'lucide-react';
 
 interface IdleStateProps {
-  onCreateTask: (title: string, duration: number, subtasks?: string[]) => void;
+  onCreateTask: (title: string, duration: number, subtasks?: SubtaskWithTime[], autoStart?: boolean) => void;
   className?: string;
+}
+
+interface SubtaskWithTime {
+  title: string;
+  duration: number;
 }
 
 export function IdleState({ onCreateTask, className }: IdleStateProps) {

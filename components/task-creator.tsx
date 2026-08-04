@@ -13,7 +13,7 @@ interface SubtaskWithTime {
 }
 
 interface TaskCreatorProps {
-  onCreateTask: (title: string, duration: number, subtasks?: SubtaskWithTime[]) => void;
+  onCreateTask: (title: string, duration: number, subtasks?: SubtaskWithTime[], autoStart?: boolean) => void;
   className?: string;
 }
 
@@ -35,7 +35,7 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [subtaskDuration, setSubtaskDuration] = useState('');
   
-  const handleCreate = useCallback(() => {
+  const handleCreate = useCallback((autoStart: boolean = false) => {
     if (!title.trim()) return;
     
     let totalDuration = selectedDuration;
@@ -56,7 +56,8 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
     onCreateTask(
       title.trim(), 
       totalDuration, 
-      subtasks.length > 0 ? subtasks : undefined
+      subtasks.length > 0 ? subtasks : undefined,
+      autoStart
     );
     
     // Reset form
@@ -72,7 +73,7 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
   
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      handleCreate();
+      handleCreate(false);
     }
     if (e.key === 'Escape') {
       setIsExpanded(false);
@@ -259,11 +260,19 @@ export function TaskCreator({ onCreateTask, className }: TaskCreatorProps) {
         <div className="flex items-center gap-2">
           <Kbd className="text-xs">⌘ Enter</Kbd>
           <Button
-            onClick={handleCreate}
+            onClick={() => handleCreate(false)}
+            disabled={!title.trim() || (!selectedDuration && !customMinutes && subtasks.length === 0)}
+            size="sm"
+            variant="outline"
+          >
+            Save
+          </Button>
+          <Button
+            onClick={() => handleCreate(true)}
             disabled={!title.trim() || (!selectedDuration && !customMinutes && subtasks.length === 0)}
             size="sm"
           >
-            Create Task
+            Save & Start
           </Button>
         </div>
       </div>
