@@ -27,6 +27,7 @@ interface TaskStore {
   
   // Execution actions
   startTask: (id: string) => void;
+  viewTask: (id: string) => void; // Just set active task without changing status
   pauseTask: (id: string) => void;
   resumeTask: (id: string) => void;
   completeTask: (id: string) => void;
@@ -124,6 +125,12 @@ export const useTaskStore = create<TaskStore>()(
         }));
       },
       
+      viewTask: (id) => {
+        set(state => ({
+          activeTaskId: id
+        }));
+      },
+      
       pauseTask: (id) => {
         set(state => ({
           tasks: state.tasks.map(t => 
@@ -208,7 +215,15 @@ export const useTaskStore = create<TaskStore>()(
             
             // Handle subtask timing logic
             if (t.subtasks.length > 0) {
-              const currentSubtask = t.subtasks[t.currentSubtaskIndex];
+              let currentIndex = t.currentSubtaskIndex;
+              const newSubtasks = [...t.subtasks];
+              
+              // Skip to next non-completed subtask if current is done
+              while (currentIndex < newSubtasks.length && newSubtasks[currentIndex]?.completed) {
+                currentIndex++;
+              }
+              
+              const currentSubtask = newSubtasks[currentIndex];
               if (!currentSubtask) {
                 // All subtasks completed
                 return {
@@ -220,23 +235,18 @@ export const useTaskStore = create<TaskStore>()(
               }
               
               // Increment elapsed on current subtask
-              const newSubtasks = t.subtasks.map((s, idx) => {
-                if (idx === t.currentSubtaskIndex) {
-                  return { ...s, elapsed: s.elapsed + 1 };
-                }
-                return s;
-              });
+              newSubtasks[currentIndex] = {
+                ...newSubtasks[currentIndex],
+                elapsed: newSubtasks[currentIndex].elapsed + 1
+              };
               
               // Check if current subtask is complete
-              const subtaskElapsed = newSubtasks[t.currentSubtaskIndex].elapsed;
-              const subtaskDuration = newSubtasks[t.currentSubtaskIndex].duration;
-              let nextIndex = t.currentSubtaskIndex;
+              const subtaskElapsed = newSubtasks[currentIndex].elapsed;
+              const subtaskDuration = newSubtasks[currentIndex].duration;
               
               if (subtaskElapsed >= subtaskDuration) {
                 // Mark current subtask as completed
-                newSubtasks[t.currentSubtaskIndex].completed = true;
-                // Move to next subtask
-                nextIndex = t.currentSubtaskIndex + 1;
+                newSubtasks[currentIndex].completed = true;
               }
               
               const totalElapsed = newSubtasks.reduce((sum, s) => sum + s.elapsed, 0);
@@ -246,7 +256,7 @@ export const useTaskStore = create<TaskStore>()(
                 ...t,
                 elapsed: totalElapsed,
                 subtasks: newSubtasks,
-                currentSubtaskIndex: nextIndex,
+                currentSubtaskIndex: currentIndex,
                 overtime: isExpired ? totalElapsed - t.duration : 0,
                 status: isExpired ? 'expired' as TaskStatus : t.status,
                 expiredAt: isExpired && !t.expiredAt ? new Date() : t.expiredAt

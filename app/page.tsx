@@ -21,6 +21,7 @@ export default function PulseTaskApp() {
     isOverlayVisible,
     addTask,
     startTask,
+    viewTask,
     pauseTask,
     resumeTask,
     completeTask,
@@ -106,13 +107,19 @@ export default function PulseTaskApp() {
   }, [addTask, setViewMode]);
   
   const handleSelectTask = useCallback((task: typeof tasks[0]) => {
+    if (task.status === 'completed' || task.status === 'expired' || task.status === 'archived') {
+      // For completed/expired tasks, just view them without changing status
+      viewTask(task.id);
+      setViewMode('focus');
+      return;
+    }
     if (task.status === 'pending') {
       startTask(task.id);
     } else if (task.status === 'paused') {
       resumeTask(task.id);
     }
     setViewMode('focus');
-  }, [startTask, resumeTask, setViewMode]);
+  }, [startTask, viewTask, resumeTask, setViewMode]);
   
   const renderMainContent = () => {
     switch (viewMode) {
